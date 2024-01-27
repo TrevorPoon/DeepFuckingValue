@@ -1,31 +1,33 @@
-import yfinance as yf
+import bokeh.layouts as layouts
+import bokeh.models as models
+import bokeh.plotting as plotting
+import matplotlib.pyplot as plt
+import matplotlib as mat
 import numpy as np
-from bokeh.plotting import figure, show, output_file
+import os
 import pandas as pd
+from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as EC
-from bs4 import BeautifulSoup
-from datetime import date, datetime, timedelta
-from bokeh.models import Range1d, LogAxis, LinearAxis, NumeralTickFormatter
-from bokeh.layouts import gridplot
-from bokeh.models import HoverTool
-from bokeh.models import DataTable, TableColumn
-from bokeh.models.widgets import HTMLTemplateFormatter
-from bokeh.models import ColumnDataSource
-from tabulate import tabulate
-import os
-from bokeh.models.widgets import Div
+from selenium.webdriver.support.ui import WebDriverWait
 import streamlit as st
-import matplotlib.pyplot as plt
-import numpy as np
-import watchdog
+import seaborn as sns
+import tabulate
+import time
 import undetected_chromedriver as uc
+import watchdog
+import yfinance as yf
 from bokeh.embed import json_item
 from bokeh.io import curdoc
-import time
+from bokeh.layouts import gridplot
+from bokeh.models import ColumnDataSource, DataTable, Div, HTMLTemplateFormatter, HoverTool, LinearAxis, NumeralTickFormatter, Range1d
+from bokeh.plotting import figure, output_file, show
+from bs4 import BeautifulSoup
+from datetime import date, datetime, timedelta
+
+
+
 
 
 # Basic Tools
@@ -545,6 +547,7 @@ def annual_financial_table(ticker, period):
 
     # Format numerical values in KMBT formatting
     # df = df.apply(lambda x: pd.to_numeric(x).apply(lambda y: f'{y / 1000:.1f}K' if abs(float(y)) >= 1e3 else f'{y:.1f}'))
+    df = df.map(convert_to_numeric)
 
     # Move index to a new column
     df.reset_index(level=0, inplace=True)
@@ -562,6 +565,33 @@ def annual_financial_table(ticker, period):
 
     # Filter the DataFrame based on the values in the first column
     essence_data = df[df.iloc[:, 0].isin(search_values)]
+
+    rows_formats = {
+        'Shares Outstanding': '{:,.0f}',  # Format as integer with commas
+        'Revenue': '${:,.0f}',  # Format as currency with two decimal places
+        'Gross Profit': '${:,.0f}',
+        'Net Income/Loss': '${:,.0f}',
+        'Net Acquisitions/Divestitures': '${:,.0f}',
+        'Debt Issuance/Retirement Net - Total': '${:,.0f}',
+        'Net Total Equity Issued/Repurchased': '${:,.0f}',
+        'Total Common And Preferred Stock Dividends Paid': '${:,.0f}',
+        'Cash On Hand': '${:,.0f}',
+        'Net Cash Flow': '${:,.0f}',
+        'Current Ratio': '{:.1%}',  # Format as percentage with two decimal places
+        'Long-term Debt / Capital': '{:.1%}',
+        'Debt/Equity Ratio': '{:.1%}',
+        'Gross Margin': '{:.1%}',
+        'Net Profit Margin': '{:.1%}',
+        'ROE - Return On Equity': '{:.1%}',
+        'Return On Tangible Equity': '{:.1%}',
+        'ROA - Return On Assets': '{:.1%}',
+        'ROI - Return On Investment': '{:.1%}',
+        'Book Value Per Share': '${:,.1f}',
+        'Operating Cash Flow Per Share': '${:,.1f}',
+        'Free Cash Flow Per Share': '${:,.1f}',
+        'EPS - Earnings Per Share': '${:,.1f}'
+    }
+
 
     full_fs = df
     essence_fs = essence_data
@@ -606,26 +636,49 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
         unsafe_allow_html=True,
     )
 
-def Streamlit_Interface_Testing():
-    # Generate some random data for the graph
-    x = np.linspace(0, 10, 100)
-    y = np.sin(x)
+def Streamlit_Interface_Testing(ticker, UI_full_annual_fs, UI_full_quarter_fs):
 
-    # Create the plot using matplotlib
-    fig, ax = plt.subplots()
-    ax.plot(x, y)
+    cm = sns.light_palette("green", as_cmap=True)
 
-    # Display the plot in the Streamlit app
-    st.pyplot(fig)
+    st.title("Full Financial Report -- " + ticker)
+
+    UI_full_annual_fs = UI_full_annual_fs.style.background_gradient(cmap=cm, axis=1)
+    UI_full_quarter_fs = UI_full_quarter_fs.style.background_gradient(cmap=cm, axis=1)
+
+    st.dataframe(UI_full_annual_fs, use_container_width=True, hide_index=True)
+    st.dataframe(UI_full_quarter_fs, use_container_width=True, hide_index=True)
+
+    np.random.seed(24)
+    df = pd.DataFrame({'A': np.linspace(1, 10, 10)})
+    df = pd.concat([df, pd.DataFrame(np.random.randn(10, 4), columns=list('BCDE'))],axis=1)
+    df.iloc[0, 2] = np.nan
+    s = df.style.background_gradient(cmap=cm)
+    st.dataframe(s)
+
+
+    st.markdown(
+        """
+        <style>
+        .main > div {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+            padding-left: 0rem;
+            padding-right: 0rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
 
 def Streamlit_Interface(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ("Main Page", "Testing"))
+    page = st.sidebar.radio("Go to", ("Main Page", "Full Report"))
 
     if page == "Main Page":
         Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_graph, UI_essence_annual_fs, UI_essence_quarter_fs)
-    elif page == "Testing":
-        Streamlit_Interface_Testing()
+    elif page == "Full Report":
+        Streamlit_Interface_Testing(ticker, UI_full_annual_fs, UI_full_quarter_fs)
 
 
 def main():

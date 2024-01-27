@@ -1,14 +1,14 @@
-from bokeh.io import curdoc
-from bokeh.plotting import figure, output_file, show
+import pandas as pd
+import numpy as np
+import matplotlib as mat
 
-x = [1, 2, 3, 4, 5]
-y = [6, 7, 6, 4, 5]
+np.random.seed(24)
+df = pd.DataFrame({'A': np.linspace(1, 10, 10)})
+df = pd.concat([df, pd.DataFrame(np.random.randn(10, 4), columns=list('BCDE'))],
+               axis=1)
+df.iloc[0, 2] = np.nan
 
-output_file("dark_minimal.html")
+cm = mat.colormaps.get_cmap('RdYlGn')
 
-curdoc().theme = 'dark_minimal'
-
-p = figure(title='dark_minimal', width=300, height=300)
-p.line(x, y)
-
-show(p)
+s = df.style.background_gradient(cmap=cm)
+print(s)
