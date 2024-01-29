@@ -1,21 +1,23 @@
-import poe
-import json
-client = poe.Client("TOKEN_HERE")
+# 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
 
-print(json.dumps(client.bot_names, indent=2))
-"""
-{
-  "chinchilla": "ChatGPT",
-  "a2": "Claude-instant",
-  "capybara": "Assistant",
-  "a2_100k": "Claude-instant-100k",
-  "llama_2_7b_chat": "Llama-2-7b",
-  "llama_2_13b_chat": "Llama-2-13b",
-  "a2_2": "Claude-2-100k",
-  "llama_2_70b_chat": "Llama-2-70b",
-  "agouti": "ChatGPT-16k",
-  "beaver": "GPT-4",
-  "vizcacha": "GPT-4-32k",
-  "acouchy": "Google-PaLM"
-}
-"""
+from openai import OpenAI
+import openai
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+openai.api_base = "https://flag.smarttrot.com/"
+
+client = OpenAI()
+
+
+
+completion = client.chat.completions.create(
+  model="gpt-3.5-turbo",
+  messages=[
+    {"role": "system", "content": "You are a poetic assistant, skilled in explaining complex programming concepts with creative flair."},
+    {"role": "user", "content": "Compose a poem that explains the concept of recursion in programming."}
+  ]
+)
+
+print(completion.choices[0].message)
