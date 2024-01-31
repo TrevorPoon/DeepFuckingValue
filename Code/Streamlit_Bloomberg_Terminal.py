@@ -46,6 +46,7 @@ def OpenInsider(ticker):
 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("start-maximized")
+    # chrome_options.add_argument("headless")
     driver = uc.Chrome(options=chrome_options)
 
     url = f"http://openinsider.com/screener?s={ticker}&o=&pl=&ph=&ll=&lh=&fd=1461&fdr=&td=0&tdr=&fdlyl=&fdlyh=&daysago=&xp=1&xs=1&vl=&vh=&ocl=&och=&sic1=-1&sicl=100&sich=9999&grp=0&nfl=&nfh=&nil=&nih=&nol=&noh=&v2l=&v2h=&oc2l=&oc2h=&sortcol=0&cnt=100&page=1"
@@ -214,6 +215,7 @@ def Directly_Copy_From_MacroTrend_Python(ticker, parent_folder):
 
         chrome_options = webdriver.ChromeOptions()
         chrome_options.add_argument("start-maximized")
+        # chrome_options.add_argument("headless")
         driver = uc.Chrome(options=chrome_options)
 
         a = ticker.upper()
