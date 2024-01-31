@@ -283,11 +283,11 @@ def Cigar_Butt_Filter (name, driver):
 
             # Filter the DataFrame for rows where 'Sum > 100000' is True
             filtered_df = df[df['Insider 6M Sum > 100K'] == True]
-            file_path = os.path.join(directory, name + 'Insider>100K_' + str(date.today()) + ".csv")
+            file_path = os.path.join(directory, name + 'Ins100K_' + str(date.today()) + ".csv")
             filtered_df.to_csv(file_path, index=False)
 
             filtered_df = filtered_df[filtered_df['Any profit over 5 years'] == True]
-            file_path = os.path.join(directory, name + 'Insider>100K_WithProfitInAny5Yrs_' + str(date.today()) + ".csv")
+            file_path = os.path.join(directory, name + 'Ins100K_P5Y_' + str(date.today()) + ".csv")
             filtered_df.to_csv(file_path, index=False)
 
 
@@ -609,7 +609,7 @@ def Get_Result_From_MacroTrend(csv_start_with, period, driver, Renew_all):
 def main():
 
     run_Finviz = False
-    run_Cigar_Butt = False
+    run_Cigar_Butt = True
     run_MacroTrend = True
 
     # Set Chrome options
@@ -630,13 +630,13 @@ def main():
         Get_Result_From_Finviz(driver, name, link)
 
     if run_Cigar_Butt:
-        Cigar_Butt_Filter("Cigar_Butt_Filtered_", driver)
+        Cigar_Butt_Filter("CB_", driver)
 
     if run_MacroTrend:
 
         Renew_all = False
 
-        csv_start_with = "Cigar_Butt_Filtered_2024-01-24"
+        csv_start_with = "CB_2024-01-30"
         period = ["A", "Q"]
         Get_Result_From_MacroTrend(csv_start_with, period, driver, Renew_all)
 
