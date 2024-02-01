@@ -1,10 +1,16 @@
 
+How to remove header new row in csv
+yf to replace marketwatch
+
 Buying Back Shares?
 Buying Back Debt?
 
 MacroTrend Upgrade
 conditional formatting
 Key ratios
+
+Peer Comparison
+Screener
 
 ### Check List ###
 Boring sector

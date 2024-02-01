@@ -156,55 +156,27 @@ def OpenInsider(ticker, driver):
     except:
         return 0
 
-def MarketWatch(ticker, driver):
+def YahooFinance(ticker):
 
     try:
-        url = f"https://www.marketwatch.com/investing/stock/{ticker}/financials"
-        driver.get(url)
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "table")))
 
-        page_source = driver.page_source
-        soup = BeautifulSoup(page_source, 'html.parser')
+        # Create a Yahoo Finance ticker object
+        ticker = yf.Ticker(ticker)
 
-        table = soup.select_one('table[aria-label="Financials - data table"]')
-        # Get the header row (th elements)
-        header_row = table.select('thead tr th')
-        headers = [header.text.strip() for header in header_row]
+        # Get the financial data for the ticker
+        financials = ticker.financials
 
-        # Get the data rows (tr elements)
-        data_rows = table.select('tbody tr')
+        # Get the net income for the last 5 years
+        net_income = financials.loc["Net Income"]
 
-        # Initialize a list to store the table data
-        table_data = []
+        # Filter out the NaN (Not a Number) values
+        net_income = net_income.dropna()
 
-        # Loop through each data row and extract the content of td elements
-        for row in data_rows:
-            data = [cell.text.strip() for cell in row.select('td')]
-            table_data.append(data)
+        # Get the net income for the last 5 years as a list
+        net_income_5_years = net_income.tail(5).tolist()
 
-        # Create a DataFrame from the table data
-        table_data = pd.DataFrame(table_data, columns=headers)
-
-        # Save the filtered DataFrame to a CSV file
-        # Filter the DataFrame to include rows with "Net Income \n Net Income" in the first column
-        filtered_data = table_data[table_data.iloc[:, 0].str.contains(r"Net Income\s*\n\s*Net Income")]
-
-        # Iterate over the columns and perform replacements for four-digit number columns
-        for col in filtered_data.columns:
-            if re.match(r'^\d{4}$', col):  # Check if the column name is a four-digit number
-                filtered_data.loc[:, col] = filtered_data.loc[:, col].replace(
-                    {"-": "0", "\\(": "-", "\\)": "", "K": "e3", "M": "e6", "B": "e9", "T": "e12"}, regex=True)
-
-        # Print the filtered DataFrame with replacements
-
-        filtered_data = filtered_data.map(convert_to_numeric)
-
-        for col in filtered_data.columns:
-            if re.match(r'^\d{4}$', col):
-                if filtered_data.iloc[0, filtered_data.columns.get_loc(col)] > 0:
-                    return True
-
-        return False
+        # Check if any of the net income values is positive
+        return any(income > 0 for income in net_income_5_years)
 
     except Exception as e:
         print(e)
@@ -262,21 +234,38 @@ def Cigar_Butt_Filter (name, driver):
 
             sum_values_list = []
             greater_than_100000_list = []
-            Profit_5_yrs_list = []
+            Profit_4_yrs_list = []
 
             for ticker in df['Ticker']:
 
                 sum_values = OpenInsider(ticker, driver)
-                any_profit = MarketWatch(ticker, driver)
+                any_profit = YahooFinance(ticker)
 
                 # Append the calculated values to the lists
                 sum_values_list.append(sum_values)
                 greater_than_100000_list.append(sum_values > 100000)
-                Profit_5_yrs_list.append(any_profit)
+                Profit_4_yrs_list.append(any_profit)
 
             df['Insider 6M Sum'] = sum_values_list
             df['Insider 6M Sum > 100K'] = greater_than_100000_list
-            df['Any profit over 5 years'] = Profit_5_yrs_list
+            df['Any profit over 5 years'] = Profit_4_yrs_list
+
+            # Create a new column 'Fundamental Score' initialized with 0
+            df['Fundamental Score'] = 0
+
+            file_path = os.path.join(directory, name + str(date.today()) + ".csv")
+            df.to_csv(file_path, index=False)
+
+            convert_to_numeric(df)
+
+            # Update the 'Fundamental Score' column based on the criteria
+            df.loc[df['EPS past 5Y'] > 0, 'Fundamental Score'] += 1
+            df.loc[df['Sales past 5Y'] > 0, 'Fundamental Score'] += 1
+            df.loc[df['Debt/Eq'] < 1, 'Fundamental Score'] += 1
+            df.loc[df['Profit M'] > 0.1, 'Fundamental Score'] += 1
+            df.loc[df['Quick R'] > 1, 'Fundamental Score'] += 1
+            df.loc[df['PB'] < 1, 'Fundamental Score'] += 1
+            df.loc[df['Insider Trans'] >= 0, 'Fundamental Score'] += 1
 
             file_path = os.path.join(directory, name + str(date.today()) + ".csv")
             df.to_csv(file_path, index=False)
@@ -610,7 +599,7 @@ def main():
 
     run_Finviz = False
     run_Cigar_Butt = True
-    run_MacroTrend = True
+    run_MacroTrend = False
 
     # Set Chrome options
     chrome_options = webdriver.ChromeOptions()
@@ -622,7 +611,7 @@ def main():
     if run_Finviz:
 
         name = "Screener_Cigar_Butt_Investing_"
-        link = "https://finviz.com/screener.ashx?v=152&f=cap_microover,sh_instown_o10,sh_price_o1&ft=4&o=high52w&c=0,1,3,4,5,6,7,8,9,10,11,74,19,21,27,28,29,31,33,36,38,41,53,57,58,125,126,65"
+        link = "https://finviz.com/screener.ashx?v=152&f=cap_microover,sh_instown_o10,sh_price_o1&ft=4&o=ticker&c=0,1,3,4,5,6,7,8,9,10,11,74,19,21,27,28,29,31,33,36,38,41,53,57,58,125,126,65"
         Get_Result_From_Finviz(driver, name, link)
 
         name = "Screener_Most_Shorted_Stocks_"
