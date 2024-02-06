@@ -598,7 +598,7 @@ def Get_Result_From_MacroTrend(csv_start_with, period, driver, Renew_all):
 def main():
 
     run_Finviz = False
-    run_Cigar_Butt = True
+    run_Cigar_Butt = False
     run_MacroTrend = False
 
     # Set Chrome options

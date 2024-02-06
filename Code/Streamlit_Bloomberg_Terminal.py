@@ -672,15 +672,43 @@ def Streamlit_Interface_Testing(ticker, UI_full_annual_fs, UI_full_quarter_fs):
         unsafe_allow_html=True,
     )
 
+def Streamlit_Interface_Screener():
+        # Get the parent directory of the Python code
+    parent_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Go to the "Processed Data" folder
+    processed_data_dir = os.path.join(parent_dir, "Processed Data")
+    os.chdir(processed_data_dir)
+
+    # Get a list of CSV files in the folder
+    csv_files = [file for file in os.listdir() if file.startswith("CB_") and file.endswith(".csv")]
+
+    # Sort the CSV files by name to get the latest one
+    csv_files.sort(reverse=True)
+
+    if csv_files:
+        # Get the latest CSV file
+        latest_csv = csv_files[0]
+
+        # Read the CSV file into a DataFrame
+        df = pd.read_csv(latest_csv)
+
+        # Display the table in Streamlit
+        st.dataframe(df)
+
+
+
 
 def Streamlit_Interface(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ("Main Page", "Full Report"))
+    page = st.sidebar.radio("Go to", ("Main Page", "Full Report", "Finviz Screener"))
 
     if page == "Main Page":
         Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_graph, UI_essence_annual_fs, UI_essence_quarter_fs)
     elif page == "Full Report":
         Streamlit_Interface_Testing(ticker, UI_full_annual_fs, UI_full_quarter_fs)
+    elif page == "Finviz Screener":
+        Streamlit_Interface_Screener()
 
 
 def main():
