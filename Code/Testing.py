@@ -1,60 +1,19 @@
-import yfinance as yf
+import os
 
-msft = yf.Ticker("MSFT")
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# get all stock info
-msft.info
+    # Go to the "Processed Data" folder
+processed_data_dir = os.path.join(parent_dir, "Processed Data", "Finviz")
 
-# get historical market data
-hist = msft.history(period="1mo")
+os.chdir(processed_data_dir)
 
-# show meta information about the history (requires history() to be called first)
-msft.history_metadata
+csv_files = [file for file in os.listdir() if file.startswith("CB_") and file.endswith(".csv")]
 
-# show actions (dividends, splits, capital gains)
-msft.actions
-msft.dividends
-msft.splits
-msft.capital_gains  # only for mutual funds & etfs
+    # Sort the CSV files by name to get the latest one
+csv_files.sort(reverse=False)
 
-# show share count
-msft.get_shares_full(start="2022-01-01", end=None)
+if csv_files:
+    # Get the latest CSV file
+    latest_csv = csv_files[0]
 
-# show financials:
-# - income statement
-print(msft.income_stmt)
-msft.quarterly_income_stmt
-# - balance sheet
-msft.balance_sheet
-msft.quarterly_balance_sheet
-# - cash flow statement
-msft.cashflow
-msft.quarterly_cashflow
-# see `Ticker.get_income_stmt()` for more options
-
-# show holders
-msft.major_holders
-msft.institutional_holders
-msft.mutualfund_holders
-msft.insider_transactions
-msft.insider_purchases
-msft.insider_roster_holders
-
-# show recommendations
-msft.recommendations
-msft.recommendations_summary
-msft.upgrades_downgrades
-
-# Show future and historic earnings dates, returns at most next 4 quarters and last 8 quarters by default.
-# Note: If more are needed use msft.get_earnings_dates(limit=XX) with increased limit argument.
-msft.earnings_dates
-
-# show ISIN code - *experimental*
-# ISIN = International Securities Identification Number
-msft.isin
-
-# show options expirations
-msft.options
-
-# show news
-msft.news
+    print(latest_csv)

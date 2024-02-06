@@ -674,20 +674,21 @@ def Streamlit_Interface_Testing(ticker, UI_full_annual_fs, UI_full_quarter_fs):
 
 def Streamlit_Interface_Screener():
         # Get the parent directory of the Python code
-    parent_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    # Go to the "Processed Data" folder
-    processed_data_dir = os.path.join(parent_dir, "Processed Data")
+        # Go to the "Processed Data" folder
+    processed_data_dir = os.path.join(parent_dir, "Processed Data", "Finviz")
 
-    # Get a list of CSV files in the folder
-    csv_files = [file for file in processed_data_dir if file.startswith("CB_") and file.endswith(".csv")]
+    os.chdir(processed_data_dir)
 
-    # Sort the CSV files by name to get the latest one
-    csv_files.sort(reverse=True)
+    csv_files = [file for file in os.listdir() if file.startswith("CB_") and file.endswith(".csv")]
+
+        # Sort the CSV files by name to get the latest one
+    csv_files.sort(reverse=False)
 
     if csv_files:
         # Get the latest CSV file
-        latest_csv = csv_files[0]
+        latest_csv = os.path.join(processed_data_dir, csv_files[0])
 
         # Read the CSV file into a DataFrame
         df = pd.read_csv(latest_csv)
