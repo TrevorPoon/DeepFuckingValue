@@ -678,10 +678,9 @@ def Streamlit_Interface_Screener():
 
     # Go to the "Processed Data" folder
     processed_data_dir = os.path.join(parent_dir, "Processed Data")
-    os.chdir(processed_data_dir)
 
     # Get a list of CSV files in the folder
-    csv_files = [file for file in os.listdir() if file.startswith("CB_") and file.endswith(".csv")]
+    csv_files = [file for file in processed_data_dir if file.startswith("CB_") and file.endswith(".csv")]
 
     # Sort the CSV files by name to get the latest one
     csv_files.sort(reverse=True)
