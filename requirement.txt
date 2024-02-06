@@ -1,0 +1,15 @@
+beautifulsoup4
+bokeh
+matplotlib
+numpy
+openpyxl
+pandas
+pandas-datareader
+pyautogui
+selenium
+seaborn
+streamlit
+tabulate
+undetected-chromedriver
+watchdog
+yfinance
