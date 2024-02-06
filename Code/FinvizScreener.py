@@ -33,6 +33,7 @@ import openpyxl
 
 # Tool Function
 def removing_ads(driver):
+
     # Get the first window handle
     main_window = driver.window_handles[0]
 
@@ -46,6 +47,7 @@ def removing_ads(driver):
 
     # Switch back to the main window
     driver.switch_to.window(main_window)
+
 def convert_to_numeric(value):
     try:
         return pd.to_numeric(value)
@@ -182,9 +184,9 @@ def YahooFinance(ticker):
         print(e)
         return False
 
-def Cigar_Butt_Filter (name, driver):
+def Cigar_Butt_Filter (name, driver, criteria):
 
-    directory = os.path.join(os.path.dirname(os.getcwd()), "Processed Data", "Finviz")  # Get the current working directory
+    directory = os.path.join(os.getcwd(), "Processed Data", "Finviz")  # Get the current working directory
 
     for filename in os.listdir(directory):
 
@@ -192,30 +194,14 @@ def Cigar_Butt_Filter (name, driver):
             os.remove(os.path.join(directory, filename))
             print(f"Deleted file: {filename}")
 
-    RawData_directory = os.path.join(os.path.dirname(os.getcwd()), "Raw Data", "Finviz")
+    RawData_directory = os.path.join(os.getcwd(), "Raw Data", "Finviz")
 
     for filename in os.listdir(RawData_directory):
 
         if filename.startswith("Screener_Cigar_Butt_Investing_") and filename.endswith(".csv"):
             file_path = os.path.join(RawData_directory, filename)
             df = pd.read_csv(file_path)
-            df.replace("-", "-999", inplace=True)
-
-            criteria = {
-                "Sector": {"= Healthcare": False},
-                "Industry": {"= Biotechnology": True},
-                "Market Cap": {"< 100000000": False, "> 100000000000": False},
-                "P/E": {"< 0": False, "> 30": True},
-                "P/B": {"> 1": False},
-                "EPS past 5Y": {"< 0": False},
-                "Sales past 5Y": {"< 0": False},
-                "Insider Trans": {"< 0": True},
-                "ROE": {"< -0.3": False},
-                "Profit M": {"< -1": True},
-                "52W Low": {"< 0.05": False},
-                "Quick R": {"< 1": False},
-                "All-Time High": {"> -0.7": True}
-            }
+            df.replace("-", -999, inplace=True)
 
             # Apply filters
             for column, conditions in criteria.items():
@@ -256,7 +242,7 @@ def Cigar_Butt_Filter (name, driver):
             file_path = os.path.join(directory, name + str(date.today()) + ".csv")
             df.to_csv(file_path, index=False)
 
-            convert_to_numeric(df)
+            df = pd.read_csv(file_path)
 
             # Update the 'Fundamental Score' column based on the criteria
             df.loc[df['EPS past 5Y'] > 0, 'Fundamental Score'] += 1
@@ -264,10 +250,9 @@ def Cigar_Butt_Filter (name, driver):
             df.loc[df['Debt/Eq'] < 1, 'Fundamental Score'] += 1
             df.loc[df['Profit M'] > 0.1, 'Fundamental Score'] += 1
             df.loc[df['Quick R'] > 1, 'Fundamental Score'] += 1
-            df.loc[df['PB'] < 1, 'Fundamental Score'] += 1
+            df.loc[df['P/B'] < 1, 'Fundamental Score'] += 1
             df.loc[df['Insider Trans'] >= 0, 'Fundamental Score'] += 1
 
-            file_path = os.path.join(directory, name + str(date.today()) + ".csv")
             df.to_csv(file_path, index=False)
 
             # Filter the DataFrame for rows where 'Sum > 100000' is True
@@ -564,7 +549,6 @@ def Directly_Copy_From_MacroTrend_Python(ticker, period, driver, parent_folder):
     except Exception as e:
         print(e)
 
-
 def Get_Result_From_MacroTrend(csv_start_with, period, driver, Renew_all):
 
     directory = os.path.join(os.path.dirname(os.getcwd()), "Processed Data", "Finviz")
@@ -598,7 +582,7 @@ def Get_Result_From_MacroTrend(csv_start_with, period, driver, Renew_all):
 def main():
 
     run_Finviz = False
-    run_Cigar_Butt = False
+    run_Cigar_Butt = True
     run_MacroTrend = False
 
     # Set Chrome options
@@ -619,7 +603,24 @@ def main():
         Get_Result_From_Finviz(driver, name, link)
 
     if run_Cigar_Butt:
-        Cigar_Butt_Filter("CB_", driver)
+
+        criteria = {
+            "Sector": {"= Healthcare": False},
+            "Industry": {"= Biotechnology": True},
+            "Market Cap": {"< 100000000": False, "> 100000000000": False},
+            "P/E": {"< 0": False, "> 30": True},
+            "P/B": {"> 1": False},
+            "EPS past 5Y": {"< 0": False},
+            "Sales past 5Y": {"< 0": False},
+            "Insider Trans": {"< 0": True},
+            "ROE": {"< -0.3": False},
+            "Profit M": {"< -1": True},
+            "52W Low": {"< 0.05": False},
+            "Quick R": {"< 1": False},
+            "All-Time High": {"> -0.7": True}
+        }
+
+        Cigar_Butt_Filter("CB_", driver, criteria)
 
     if run_MacroTrend:
 
