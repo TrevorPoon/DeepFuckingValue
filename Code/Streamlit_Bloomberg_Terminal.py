@@ -46,7 +46,7 @@ def OpenInsider(ticker):
 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("start-maximized")
-    # chrome_options.add_argument("headless")
+    chrome_options.add_argument("headless")
     driver = uc.Chrome(options=chrome_options)
 
     url = f"http://openinsider.com/screener?s={ticker}&o=&pl=&ph=&ll=&lh=&fd=1461&fdr=&td=0&tdr=&fdlyl=&fdlyh=&daysago=&xp=1&xs=1&vl=&vh=&ocl=&och=&sic1=-1&sicl=100&sich=9999&grp=0&nfl=&nfh=&nil=&nih=&nol=&noh=&v2l=&v2h=&oc2l=&oc2h=&sortcol=0&cnt=100&page=1"
@@ -604,7 +604,7 @@ def annual_financial_table(ticker, period):
 def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_graph, UI_essence_annual_fs, UI_essence_quarter_fs):
     st.title("Bloomberg Terminal -- " + ticker)
 
-    tab1, tab2 = st.tabs(["📈 TA", "🗃 FA"])
+    tab1, tab2, tab3 = st.tabs(["📈 TA", "🗃 FA", "Peers"])
 
     with tab1:
         st.write("10 Yrs Price Movement")
@@ -623,6 +623,9 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
     with tab2:
         st.dataframe(UI_essence_annual_fs, use_container_width=True, hide_index=True)
         st.dataframe(UI_essence_quarter_fs, use_container_width=True, hide_index=True)
+    
+    with tab3:
+        st.write("Peers Comparison")
 
     st.markdown(
         """
