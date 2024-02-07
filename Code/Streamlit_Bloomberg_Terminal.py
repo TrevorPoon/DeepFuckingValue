@@ -724,5 +724,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# Streamlit run Streamlit_Bloomberg_Terminal.py
