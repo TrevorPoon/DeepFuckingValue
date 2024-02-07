@@ -25,6 +25,7 @@ from bokeh.models import ColumnDataSource, DataTable, Div, HTMLTemplateFormatter
 from bokeh.plotting import figure, output_file, show
 from bs4 import BeautifulSoup
 from datetime import date, datetime, timedelta
+import plotly.figure_factory as ff
 
 
 
@@ -604,7 +605,7 @@ def annual_financial_table(ticker, period):
 def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_graph, UI_essence_annual_fs, UI_essence_quarter_fs):
     st.title("Bloomberg Terminal -- " + ticker)
 
-    tab1, tab2, tab3 = st.tabs(["📈 TA", "🗃 FA", "Peers"])
+    tab1, tab2, tab3 = st.tabs(["📈 TA", "🗃 FA", "🫂 Peers"])
 
     with tab1:
         st.write("10 Yrs Price Movement")
@@ -641,7 +642,7 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
         unsafe_allow_html=True,
     )
 
-def Streamlit_Interface_Testing(ticker, UI_full_annual_fs, UI_full_quarter_fs):
+def Streamlit_Interface_FullReport(ticker, UI_full_annual_fs, UI_full_quarter_fs):
 
     cm = sns.light_palette("green", as_cmap=True)
 
@@ -696,11 +697,10 @@ def Streamlit_Interface_Screener():
         # Read the CSV file into a DataFrame
         df = pd.read_csv(latest_csv)
 
+        df = df.drop(columns = ["No."])
+
         # Display the table in Streamlit
         st.dataframe(df)
-
-
-
 
 def Streamlit_Interface(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
     st.sidebar.title("Navigation")
@@ -709,7 +709,7 @@ def Streamlit_Interface(ticker, OpenInsider_Summary, insider_price_graph, UI_ful
     if page == "Main Page":
         Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_graph, UI_essence_annual_fs, UI_essence_quarter_fs)
     elif page == "Full Report":
-        Streamlit_Interface_Testing(ticker, UI_full_annual_fs, UI_full_quarter_fs)
+        Streamlit_Interface_FullReport(ticker, UI_full_annual_fs, UI_full_quarter_fs)
     elif page == "Finviz Screener":
         Streamlit_Interface_Screener()
 
