@@ -687,9 +687,6 @@ def filter_dataframe(df):
 
 
 
-
-
-
 #Pagination
 def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_graph, UI_essence_annual_fs, UI_essence_quarter_fs):
     st.title("Bloomberg Terminal -- " + ticker)
@@ -711,7 +708,24 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
             st.bokeh_chart(insider_price_graph, use_container_width=True)
 
     with tab2:
+
         st.dataframe(UI_essence_annual_fs, use_container_width=True, hide_index=True)
+
+        print(UI_essence_annual_fs)
+
+        st.data_editor(
+            UI_essence_annual_fs.drop(UI_essence_annual_fs.columns[0], axis=1),
+            column_config={
+                "sales": st.column_config.LineChartColumn(
+                    "Sales (last 6 months)",
+                    width="medium",
+                    help="The sales volume in the last 6 months",
+                    y_min=0,
+                    y_max=100,
+                ),
+            },
+            hide_index=True,
+)
         st.dataframe(UI_essence_quarter_fs, use_container_width=True, hide_index=True)
     
     with tab3:
@@ -742,14 +756,6 @@ def Streamlit_Interface_FullReport(ticker, UI_full_annual_fs, UI_full_quarter_fs
 
     st.dataframe(UI_full_annual_fs, use_container_width=True, hide_index=True)
     st.dataframe(UI_full_quarter_fs, use_container_width=True, hide_index=True)
-
-    np.random.seed(24)
-    df = pd.DataFrame({'A': np.linspace(1, 10, 10)})
-    df = pd.concat([df, pd.DataFrame(np.random.randn(10, 4), columns=list('BCDE'))],axis=1)
-    df.iloc[0, 2] = np.nan
-    s = df.style.background_gradient(cmap=cm)
-    st.dataframe(s)
-
 
     st.markdown(
         """
@@ -821,30 +827,31 @@ def Streamlit_Interface_Screener():
 
         # Display the table in Streamlit
     
+    st.title("Cigar Butt Screener")
     options = st.selectbox(
     'Which dataframe would you want?',
     ('Filtered', 'Raw'))
 
     if options == "Raw":
-       st.dataframe(filter_dataframe(GetRaw())) 
+       st.data_editor(filter_dataframe(GetRaw()), use_container_width=True) 
     elif options == "Filtered":
-        st.dataframe(filter_dataframe(GetProcessed()))
+        st.data_editor(filter_dataframe(GetProcessed()), use_container_width=True)
 
 def Streamlit_Interface(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ("Main Page", "Full Report", "Finviz Screener"))
+    page = st.sidebar.radio("Go to", ("Main Page", "Full Report", "Cigar Butt Screener"))
 
     if page == "Main Page":
         Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_graph, UI_essence_annual_fs, UI_essence_quarter_fs)
     elif page == "Full Report":
         Streamlit_Interface_FullReport(ticker, UI_full_annual_fs, UI_full_quarter_fs)
-    elif page == "Finviz Screener":
+    elif page == "Cigar Butt Screener":
         Streamlit_Interface_Screener()
 
 
 def main():
 
-    ticker = "GLT"
+    ticker = "NYCB"
 
     OpenInsider_Data, OpenInsider_Summary = OpenInsider(ticker)
     insider_price_graph = Insider_Buying_graph(ticker, OpenInsider_Data)
