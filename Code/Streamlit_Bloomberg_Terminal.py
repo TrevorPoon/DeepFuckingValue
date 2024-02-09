@@ -26,6 +26,12 @@ from bokeh.plotting import figure, output_file, show
 from bs4 import BeautifulSoup
 from datetime import date, datetime, timedelta
 import plotly.figure_factory as ff
+from pandas.api.types import (
+    is_categorical_dtype,
+    is_datetime64_any_dtype,
+    is_numeric_dtype,
+    is_object_dtype,
+)
 
 
 
@@ -497,7 +503,7 @@ def Directly_Copy_From_MacroTrend_Python(ticker, parent_folder):
 
 def Check_MacroTrend(ticker, period):
 
-    parent_folder = os.path.dirname(os.getcwd())
+    parent_folder = os.path.dirname(os.path.dirname(os.getcwd()))
     folder_path = os.path.join(parent_folder, "MacroTrend")
     ticker_folder = None
     ticker_file = None
@@ -529,6 +535,7 @@ def Check_MacroTrend(ticker, period):
 
 @st.cache_resource
 def annual_financial_table(ticker, period):
+
 
     ticker_folder_path, ticker_file = Check_MacroTrend(ticker, period)
 
@@ -600,6 +607,88 @@ def annual_financial_table(ticker, period):
     essence_fs = essence_data
 
     return full_fs, essence_fs
+
+def filter_dataframe(df):
+    """
+    Adds a UI on top of a dataframe to let viewers filter columns
+
+    Args:
+        df (pd.DataFrame): Original dataframe
+
+    Returns:
+        pd.DataFrame: Filtered dataframe
+    """
+    modify = st.checkbox("Add filters")
+
+    if not modify:
+        return df
+
+    df = df.copy()
+
+    # Try to convert datetimes into a standard format (datetime, no timezone)
+    for col in df.columns:
+        if is_object_dtype(df[col]):
+            try:
+                df[col] = pd.to_datetime(df[col])
+            except Exception:
+                pass
+
+        if is_datetime64_any_dtype(df[col]):
+            df[col] = df[col].dt.tz_localize(None)
+
+    modification_container = st.container()
+
+    with modification_container:
+        to_filter_columns = st.multiselect("Filter dataframe on", df.columns)
+        for column in to_filter_columns:
+            left, right = st.columns((1, 20))
+            left.write("↳")
+            # Treat columns with < 10 unique values as categorical
+            if is_categorical_dtype(df[column]) or df[column].nunique() < 10:
+                user_cat_input = right.multiselect(
+                    f"Values for {column}",
+                    df[column].unique(),
+                    default=list(df[column].unique()),
+                )
+                df = df[df[column].isin(user_cat_input)]
+            elif is_numeric_dtype(df[column]):
+                _min = float(df[column].min())
+                _max = float(df[column].max())
+                step = (_max - _min) / 100
+                user_num_input = right.slider(
+                    f"Values for {column}",
+                    _min,
+                    _max,
+                    (_min, _max),
+                    step=step,
+                )
+                df = df[df[column].between(*user_num_input)]
+            elif is_datetime64_any_dtype(df[column]):
+                user_date_input = right.date_input(
+                    f"Values for {column}",
+                    value=(
+                        df[column].min(),
+                        df[column].max(),
+                    ),
+                )
+                if len(user_date_input) == 2:
+                    user_date_input = tuple(map(pd.to_datetime, user_date_input))
+                    start_date, end_date = user_date_input
+                    df = df.loc[df[column].between(start_date, end_date)]
+            else:
+                user_text_input = right.text_input(
+                    f"Substring or regex in {column}",
+                )
+                if user_text_input:
+                    df = df[df[column].str.contains(user_text_input)]
+
+    return df
+
+
+
+
+
+
 
 #Pagination
 def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_graph, UI_essence_annual_fs, UI_essence_quarter_fs):
@@ -677,30 +766,69 @@ def Streamlit_Interface_FullReport(ticker, UI_full_annual_fs, UI_full_quarter_fs
     )
 
 def Streamlit_Interface_Screener():
+
+    def GetProcessed():
+
         # Get the parent directory of the Python code
-    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-        # Go to the "Processed Data" folder
-    processed_data_dir = os.path.join(parent_dir, "Processed Data", "Finviz")
+            # Go to the "Processed Data" folder
+        processed_data_dir = os.path.join(parent_dir, "Processed Data", "Finviz")
 
-    os.chdir(processed_data_dir)
+        os.chdir(processed_data_dir)
 
-    csv_files = [file for file in os.listdir() if file.startswith("CB_") and file.endswith(".csv")]
+        csv_files = [file for file in os.listdir() if file.startswith("CB_") and file.endswith(".csv")]
 
-        # Sort the CSV files by name to get the latest one
-    csv_files.sort(reverse=False)
+            # Sort the CSV files by name to get the latest one
+        csv_files.sort(reverse=False)
 
-    if csv_files:
-        # Get the latest CSV file
-        latest_csv = os.path.join(processed_data_dir, csv_files[0])
+        if csv_files:
+            # Get the latest CSV file
+            latest_csv = os.path.join(processed_data_dir, csv_files[0])
 
-        # Read the CSV file into a DataFrame
-        df = pd.read_csv(latest_csv)
+            # Read the CSV file into a DataFrame
+            df = pd.read_csv(latest_csv)
 
-        df = df.drop(columns = ["No."])
+            df = df.drop(columns = ["No."])
+            
+            return df
+    
+    def GetRaw():
+
+        # Get the parent directory of the Python code
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+            # Go to the "Processed Data" folder
+        processed_data_dir = os.path.join(parent_dir, "Raw Data", "Finviz")
+
+        os.chdir(processed_data_dir)
+
+        csv_files = [file for file in os.listdir() if file.startswith("Screener_Cigar_Butt") and file.endswith(".csv")]
+
+            # Sort the CSV files by name to get the latest one
+        csv_files.sort(reverse=False)
+
+        if csv_files:
+            # Get the latest CSV file
+            latest_csv = os.path.join(processed_data_dir, csv_files[0])
+
+            # Read the CSV file into a DataFrame
+            df = pd.read_csv(latest_csv)
+
+            df = df.drop(columns = ["No."])
+            
+            return df
 
         # Display the table in Streamlit
-        st.dataframe(df)
+    
+    options = st.selectbox(
+    'Which dataframe would you want?',
+    ('Filtered', 'Raw'))
+
+    if options == "Raw":
+       st.dataframe(filter_dataframe(GetRaw())) 
+    elif options == "Filtered":
+        st.dataframe(filter_dataframe(GetProcessed()))
 
 def Streamlit_Interface(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
     st.sidebar.title("Navigation")
