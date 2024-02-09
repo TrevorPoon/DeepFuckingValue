@@ -201,6 +201,9 @@ def Cigar_Butt_Filter (name, driver, criteria):
             df = pd.read_csv(file_path)
             df.replace("-", -999, inplace=True)
 
+            file_path = os.path.join(directory, name + str(date.today()) + ".csv")
+            df.to_csv(file_path, index=False)
+
             # Apply filters
             for column, conditions in criteria.items():
                 if conditions:
@@ -237,7 +240,7 @@ def Cigar_Butt_Filter (name, driver, criteria):
             # Create a new column 'Fundamental Score' initialized with 0
             df['Fundamental Score'] = 0
 
-            file_path = os.path.join(directory, name + str(date.today()) + ".csv")
+            file_path = os.path.join(directory, name + "Filter_" + str(date.today()) + ".csv")
             df.to_csv(file_path, index=False)
 
             df = pd.read_csv(file_path)

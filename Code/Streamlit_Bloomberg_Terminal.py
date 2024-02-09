@@ -32,6 +32,7 @@ from pandas.api.types import (
     is_numeric_dtype,
     is_object_dtype,
 )
+import altair as alt
 
 
 
@@ -198,19 +199,17 @@ def Ten_Yrs_Price_Movement_graph(ticker_symbol):
         # Fetch historical data using yfinance for the past 10 years
         data = yf.download(ticker_symbol, period="10y")
 
-        # Create a Bokeh figure
-        p = figure(title=f"10 Yrs Price Movement for {ticker_symbol}", x_axis_label="Date", x_axis_type="datetime", y_axis_type="log", height=200)
+        data = data['Adj Close']
 
-        # Plot the closing prices on the primary y-axis
-        line = p.line(data.index, data["Close"], line_width=2, color="blue")
+        print(data)
 
-        # Set the range of the primary y-axis
-        p.y_range = Range1d(start=data["Close"].min() * 0.9, end=data["Close"].max() * 1.1)
+        chart = alt.Chart(data).mark_line().encode(
+            x="Date:T",
+            y="Close:Q"
+        )
 
-        hover_tool = HoverTool(renderers=[line], tooltips=[("Price", "@y")], mode="vline")
-        p.add_tools(hover_tool)
 
-        return p
+        return chart
 
     except Exception as e:
         print(f"Error: {str(e)}")
@@ -558,6 +557,7 @@ def annual_financial_table(ticker, period):
     # Format numerical values in KMBT formatting
     # df = df.apply(lambda x: pd.to_numeric(x).apply(lambda y: f'{y / 1000:.1f}K' if abs(float(y)) >= 1e3 else f'{y:.1f}'))
     df = df.map(convert_to_numeric)
+    df = convert_to_numeric(df)
 
     # Move index to a new column
     df.reset_index(level=0, inplace=True)
@@ -688,14 +688,14 @@ def filter_dataframe(df):
 
 
 #Pagination
-def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_graph, UI_essence_annual_fs, UI_essence_quarter_fs):
+def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
     st.title("Bloomberg Terminal -- " + ticker)
 
     tab1, tab2, tab3 = st.tabs(["📈 TA", "🗃 FA", "🫂 Peers"])
 
     with tab1:
         st.write("10 Yrs Price Movement")
-        st.bokeh_chart(Ten_Yrs_Price_Movement_graph(ticker), use_container_width=True)
+        st.altair_chart(Ten_Yrs_Price_Movement_graph(ticker), use_container_width=True)
 
         col1, col2 = st.columns([1, 2])
         with col1:
@@ -709,11 +709,9 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
 
     with tab2:
 
-        col1, col2 = st.columns([1, 5])
+        def statement_bar(full, essence):
 
-        with col1:
-
-            transposed_df = UI_essence_annual_fs.transpose()
+            transposed_df = full.transpose()
             transposed_df.columns = transposed_df.iloc[0]
             transposed_df = transposed_df[1:]
 
@@ -725,39 +723,22 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
                     temp_list.append(transposed_df.iloc[j, i])
                 bar.loc[i] = [temp_list]
 
+            df = pd.concat([essence, bar], axis=1, ignore_index=False)
+
             st.dataframe(
-                bar,
-                column_config={
-                    "Bar": st.column_config.BarChartColumn(
-                        "Sales (last 6 months)",
-                        help="The sales volume in the last 6 months",
-                    ),
-                },
-                hide_index=True,
-            )
-
-            df = pd.concat([UI_essence_annual_fs, bar], axis=0, ignore_index=True)
-
-            st.data_editor(
                 df,
                 column_config={
                     "Bar": st.column_config.BarChartColumn(
-                        "Sales (last 6 months)",
-                        help="The sales volume in the last 6 months",
+                        "Trend",
                     ),
                 },
+                use_container_width=True, 
                 hide_index=True,
             )
-            
 
-
-
-
-        with col2:
-
-            st.dataframe(UI_essence_annual_fs, use_container_width=True, hide_index=True)
-
-            st.dataframe(UI_essence_quarter_fs, use_container_width=True, hide_index=True)
+        statement_bar(UI_full_annual_fs, UI_essence_annual_fs)
+        statement_bar(UI_full_quarter_fs, UI_essence_quarter_fs)
+        
 
     with tab3:
 
@@ -904,7 +885,7 @@ def Streamlit_Interface_Screener():
 
         os.chdir(processed_data_dir)
 
-        csv_files = [file for file in os.listdir() if file.startswith("CB_") and file.endswith(".csv")]
+        csv_files = [file for file in os.listdir() if file.startswith("CB_Filter") and file.endswith(".csv")]
 
             # Sort the CSV files by name to get the latest one
         csv_files.sort(reverse=False)
@@ -930,7 +911,7 @@ def Streamlit_Interface_Screener():
 
         os.chdir(processed_data_dir)
 
-        csv_files = [file for file in os.listdir() if file.startswith("Screener_Cigar_Butt") and file.endswith(".csv")]
+        csv_files = [file for file in os.listdir() if file.startswith("CB_") and file.endswith(".csv")]
 
             # Sort the CSV files by name to get the latest one
         csv_files.sort(reverse=False)
@@ -963,7 +944,7 @@ def Streamlit_Interface(ticker, OpenInsider_Summary, insider_price_graph, UI_ful
     page = st.sidebar.radio("Go to", ("Main Page", "Full Report", "Cigar Butt Screener"))
 
     if page == "Main Page":
-        Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_graph, UI_essence_annual_fs, UI_essence_quarter_fs)
+        Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs)
     elif page == "Full Report":
         Streamlit_Interface_FullReport(ticker, UI_full_annual_fs, UI_full_quarter_fs)
     elif page == "Cigar Butt Screener":
