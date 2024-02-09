@@ -709,10 +709,56 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
 
     with tab2:
 
-        st.dataframe(UI_essence_annual_fs, use_container_width=True, hide_index=True)
+        col1, col2 = st.columns([1, 5])
 
-        st.dataframe(UI_essence_quarter_fs, use_container_width=True, hide_index=True)
-    
+        with col1:
+
+            transposed_df = UI_essence_annual_fs.transpose()
+            transposed_df.columns = transposed_df.iloc[0]
+            transposed_df = transposed_df[1:]
+
+            bar = pd.DataFrame(columns=["Bar"])
+
+            for i in range(len(transposed_df.columns)):
+                temp_list = []
+                for j in range(len(transposed_df)):
+                    temp_list.append(transposed_df.iloc[j, i])
+                bar.loc[i] = [temp_list]
+
+            st.dataframe(
+                bar,
+                column_config={
+                    "Bar": st.column_config.BarChartColumn(
+                        "Sales (last 6 months)",
+                        help="The sales volume in the last 6 months",
+                    ),
+                },
+                hide_index=True,
+            )
+
+            df = pd.concat([UI_essence_annual_fs, bar], axis=0, ignore_index=True)
+
+            st.data_editor(
+                df,
+                column_config={
+                    "Bar": st.column_config.BarChartColumn(
+                        "Sales (last 6 months)",
+                        help="The sales volume in the last 6 months",
+                    ),
+                },
+                hide_index=True,
+            )
+            
+
+
+
+
+        with col2:
+
+            st.dataframe(UI_essence_annual_fs, use_container_width=True, hide_index=True)
+
+            st.dataframe(UI_essence_quarter_fs, use_container_width=True, hide_index=True)
+
     with tab3:
 
         def GetRaw():
