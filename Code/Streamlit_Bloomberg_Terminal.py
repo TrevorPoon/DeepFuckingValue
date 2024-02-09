@@ -700,7 +700,7 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
         col1, col2 = st.columns([1, 2])
         with col1:
             st.write("OI Recent Buying (4yrs)")
-            st.table(OpenInsider_Summary)
+            st.dataframe(OpenInsider_Summary, hide_index=True)
             st.markdown("<style>div[data-testid='stTable'] table { font-size: 11px; }</style>", unsafe_allow_html=True)
 
         with col2:
@@ -711,25 +711,100 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
 
         st.dataframe(UI_essence_annual_fs, use_container_width=True, hide_index=True)
 
-        print(UI_essence_annual_fs)
-
-        st.data_editor(
-            UI_essence_annual_fs.drop(UI_essence_annual_fs.columns[0], axis=1),
-            column_config={
-                "sales": st.column_config.LineChartColumn(
-                    "Sales (last 6 months)",
-                    width="medium",
-                    help="The sales volume in the last 6 months",
-                    y_min=0,
-                    y_max=100,
-                ),
-            },
-            hide_index=True,
-)
         st.dataframe(UI_essence_quarter_fs, use_container_width=True, hide_index=True)
     
     with tab3:
-        st.write("Peers Comparison")
+
+        def GetRaw():
+
+            # Get the parent directory of the Python code
+            parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+                # Go to the "Processed Data" folder
+            processed_data_dir = os.path.join(parent_dir, "Raw Data", "Finviz")
+
+            os.chdir(processed_data_dir)
+
+            csv_files = [file for file in os.listdir() if file.startswith("Screener_Cigar_Butt") and file.endswith(".csv")]
+
+                # Sort the CSV files by name to get the latest one
+            csv_files.sort(reverse=False)
+
+            if csv_files:
+                # Get the latest CSV file
+                latest_csv = os.path.join(processed_data_dir, csv_files[0])
+
+                # Read the CSV file into a DataFrame
+                df = pd.read_csv(latest_csv)
+
+                df = df.drop(columns = ["No."])
+                
+                return df
+
+        df = GetRaw()
+
+        Industry = df.loc[df['Ticker'] == ticker, 'Industry'].iloc[0]
+
+        Peers = df.loc[df['Industry'] == Industry]
+
+        ticker_table = Peers.loc[df['Ticker'] == ticker]
+
+        st.dataframe(ticker_table, hide_index=True)
+
+        st.write(Industry, Peers['Ticker'].count())
+
+        def avg_table():
+            metrics = ['P/E', 'Fwd P/E', 'PEG', 'P/S', 'P/B', 'EPS past 5Y', 'Sales past 5Y', 'ROE', 'Quick R', 'Debt/Eq', 'Profit M', 'SMA50']
+            data = {'Metric': [], ticker: [], 'Average': [], 'Average Market Cap': [], 'Percentile': []}
+
+            for metric in metrics:
+
+                metric_values = convert_to_numeric(Peers[Peers[metric] != "-"][metric])
+                try:
+                    ticker_metric = convert_to_numeric(ticker_table[metric].iloc[0])
+                except:
+                    ticker_metric = float(None)
+
+                metric_avg = round(metric_values.mean(), 2)
+                metric_avg_mc = round((metric_values * convert_to_numeric(Peers[Peers[metric] != "-"]['Market Cap'])).sum() / convert_to_numeric(Peers[Peers[metric] != "-"]['Market Cap']).sum(), 2)
+
+                try:
+                    percentile = round((np.searchsorted(metric_values, ticker_metric) / len(metric_values)),2)
+                except:
+                    percentile = "-"
+
+                data['Metric'].append(metric)
+                data[ticker].append(ticker_metric)
+                data['Average'].append(metric_avg)
+                data['Average Market Cap'].append(metric_avg_mc)
+                data['Percentile'].append(percentile)
+
+            return data
+
+        summary_table = avg_table()
+
+        st.dataframe(
+            summary_table,
+            column_config={
+                "Metric": "Metric",
+                ticker: ticker,
+                "Average": "Avg",
+                "Average Market Cap": "Avg MC",
+                "Percentile": st.column_config.ProgressColumn(
+                    "Percentile",
+                    help="Relative Valuation across Industry",
+                    format="%f",
+                    min_value=0,
+                    max_value=1,
+                ),
+            },
+            use_container_width=True, 
+            hide_index=True,
+        )
+
+        st.dataframe(Peers, hide_index=True)
+
+        
 
     st.markdown(
         """
