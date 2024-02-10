@@ -33,6 +33,7 @@ from pandas.api.types import (
     is_object_dtype,
 )
 import altair as alt
+import webbrowser
 
 
 
@@ -184,9 +185,9 @@ def Insider_Buying_graph(ticker_symbol, OpenInsider_Data):
         OpenInsider_Data['abs value'] = abs(OpenInsider_Data['Value'])
 
         # Create the bar chart for OpenInsider data
-        bar_chart = alt.Chart(OpenInsider_Data).mark_bar(size=4).encode(
+        bar_chart = alt.Chart(OpenInsider_Data).mark_bar(size=4, opacity=0.5).encode(
             x="Trade Date:T",
-            y=alt.Y("abs value", title="Insider Value"),
+            y=alt.Y("abs value", scale=alt.Scale(type='log'), title="Insider Value"),
             color=alt.condition(alt.datum.Value > 0, alt.value("green"), alt.value("red"))
         )
 
@@ -581,11 +582,13 @@ def annual_financial_table(ticker, period):
     # Format numerical values in KMBT formatting
     # df = df.apply(lambda x: pd.to_numeric(x).apply(lambda y: f'{y / 1000:.1f}K' if abs(float(y)) >= 1e3 else f'{y:.1f}'))
     df = df.map(convert_to_numeric)
-    df = convert_to_numeric(df)
 
     # Move index to a new column
     df.reset_index(level=0, inplace=True)
     df.rename(columns={'index': period + ' Report'}, inplace=True)
+
+    df = df.round(3)
+
 
     search_values = ['Shares Outstanding', 'Revenue', 'Gross Profit', 'Net Income/Loss',
                      'Net Acquisitions/Divestitures',
@@ -599,33 +602,6 @@ def annual_financial_table(ticker, period):
 
     # Filter the DataFrame based on the values in the first column
     essence_data = df[df.iloc[:, 0].isin(search_values)]
-
-    rows_formats = {
-        'Shares Outstanding': '{:,.0f}',  # Format as integer with commas
-        'Revenue': '${:,.0f}',  # Format as currency with two decimal places
-        'Gross Profit': '${:,.0f}',
-        'Net Income/Loss': '${:,.0f}',
-        'Net Acquisitions/Divestitures': '${:,.0f}',
-        'Debt Issuance/Retirement Net - Total': '${:,.0f}',
-        'Net Total Equity Issued/Repurchased': '${:,.0f}',
-        'Total Common And Preferred Stock Dividends Paid': '${:,.0f}',
-        'Cash On Hand': '${:,.0f}',
-        'Net Cash Flow': '${:,.0f}',
-        'Current Ratio': '{:.1%}',  # Format as percentage with two decimal places
-        'Long-term Debt / Capital': '{:.1%}',
-        'Debt/Equity Ratio': '{:.1%}',
-        'Gross Margin': '{:.1%}',
-        'Net Profit Margin': '{:.1%}',
-        'ROE - Return On Equity': '{:.1%}',
-        'Return On Tangible Equity': '{:.1%}',
-        'ROA - Return On Assets': '{:.1%}',
-        'ROI - Return On Investment': '{:.1%}',
-        'Book Value Per Share': '${:,.1f}',
-        'Operating Cash Flow Per Share': '${:,.1f}',
-        'Free Cash Flow Per Share': '${:,.1f}',
-        'EPS - Earnings Per Share': '${:,.1f}'
-    }
-
 
     full_fs = df
     essence_fs = essence_data
@@ -715,7 +691,7 @@ def filter_dataframe(df):
 def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
     st.title("Bloomberg Terminal -- " + ticker)
 
-    tab1, tab2, tab3 = st.tabs(["📈 TA", "🗃 FA", "🫂 Peers"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📈 TA", "🗃 FA", "🫂 Peers", "🔗 Websites"])
 
     with tab1:
         st.write("10 Yrs Price Movement")
@@ -749,21 +725,57 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
 
             df = pd.concat([essence, bar], axis=1, ignore_index=False)
 
+            search_values = ['Shares Outstanding', 'Revenue', 'Gross Profit', 'Net Income/Loss',
+                     'Net Acquisitions/Divestitures',
+                     'Debt Issuance/Retirement Net - Total', 'Net Total Equity Issued/Repurchased',
+                     'Total Common And Preferred Stock Dividends Paid', 'Cash On Hand', 'Net Cash Flow',
+                     'Current Ratio',
+                     'Long-term Debt / Capital', 'Debt/Equity Ratio', 'Gross Margin', 'Net Profit Margin',
+                     'ROE - Return On Equity', 'Return On Tangible Equity', 'ROA - Return On Assets',
+                     'ROI - Return On Investment', 'Book Value Per Share', 'Operating Cash Flow Per Share',
+                     'Free Cash Flow Per Share', 'EPS - Earnings Per Share']
+
+            # Filter the DataFrame based on the values in the first column
+            df = df[df.iloc[:, 0].isin(search_values)]
+
+            No_Deci = ['Shares Outstanding', 'Revenue', 'Gross Profit', 'Net Income/Loss',
+                     'Net Acquisitions/Divestitures',
+                     'Debt Issuance/Retirement Net - Total', 'Net Total Equity Issued/Repurchased',
+                     'Total Common And Preferred Stock Dividends Paid', 'Cash On Hand', 'Net Cash Flow',
+                     ]
+            
+            statement = df[df.iloc[:, 0].isin(No_Deci)].round(0)
+
             st.dataframe(
-                df,
+                statement,
                 column_config={
                     "Bar": st.column_config.BarChartColumn(
                         "Trend",
                     ),
                 },
                 use_container_width=True, 
-                hide_index=True,
+                hide_index=False,
             )
 
+            statement = df[~df.iloc[:, 0].isin(No_Deci)].round(3)
+
+            st.dataframe(
+                statement,
+                column_config={
+                    "Bar": st.column_config.BarChartColumn(
+                        "Trend",
+                    ),
+                },
+                use_container_width=True, 
+                hide_index=False,
+            )
+
+        st.write("Annual Report")
         statement_bar(UI_full_annual_fs, UI_essence_annual_fs)
+
+        st. write("Quarterly Report")
         statement_bar(UI_full_quarter_fs, UI_essence_quarter_fs)
         
-
     with tab3:
 
         def GetRaw():
@@ -820,7 +832,10 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
                 metric_avg_mc = round((metric_values * convert_to_numeric(Peers[Peers[metric] != "-"]['Market Cap'])).sum() / convert_to_numeric(Peers[Peers[metric] != "-"]['Market Cap']).sum(), 2)
 
                 try:
-                    percentile = round((np.searchsorted(metric_values, ticker_metric) / len(metric_values)),2)
+                    if metric in ['P/E', 'Fwd P/E', 'PEG', 'P/S', 'P/B', 'Debt/Eq', 'SMA50']: 
+                        percentile = round(1 - (np.searchsorted(metric_values, ticker_metric) / len(metric_values)),2)
+                    else:
+                        percentile = round((np.searchsorted(metric_values, ticker_metric) / len(metric_values)),2)
                 except:
                     percentile = "-"
 
@@ -846,7 +861,7 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
                     help="Relative Valuation across Industry",
                     format="%f",
                     min_value=0,
-                    max_value=1,
+                    max_value=1,  
                 ),
             },
             use_container_width=True, 
@@ -855,7 +870,43 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
 
         st.dataframe(Peers, hide_index=True)
 
-        
+    with tab4:
+
+        url2 = ['Gurufocus', "https://www.gurufocus.com/stock/" + ticker + "/summary"]
+        url3 = ['Tradingview', "https://www.tradingview.com/chart/?symbol=" + ticker]
+        url4 = ['Investor Relations', "https://www.google.com/search?q=" + ticker + "+investor+relations+press+release"]
+        url5 = ['Seeking Alpha', "https://seekingalpha.com/symbol/" + ticker]
+        url6 = ['Open Insider', "http://openinsider.com/" + ticker]
+        url7 = ['Whale Wisdom', "https://whalewisdom.com/stock/" + ticker + "#listings_table-sticky-header"]
+        url8 = ['Twitter', "https://twitter.com/search?q=%24" + ticker + "&src=typed_query&f=top"]
+        url9 = ['Bond Supermart', "https://www.bondsupermart.com/bsm/general-search/" + ticker]
+        url10 = ['Moody\'s Report', "https://www.google.com/search?q=mooody+report+" + ticker]
+        url12 = ['Simply Wall St', "https://simplywall.st/dashboard"]
+        url13 = ['Alpha Spread', "https://www.alphaspread.com/dashboard"]
+        url14 = ['FINRA', "https://www.finra.org/finra-data/fixed-income/corp-and-agency"]
+
+        urls = [url2, url3, url4, url5, url6, url7, url8, url9, url10, url12, url13, url14]
+
+        data = []
+        for name, url in urls:
+            data.append([name, url])
+
+        data.sort()
+
+        df = pd.DataFrame(data, columns=["Name", "URL"])
+
+        if st.button("Open All URLs"):
+            for url in df["URL"]:
+                webbrowser.open_new_tab(url)
+
+        st.dataframe(
+            df,
+            column_config={
+                "URL": st.column_config.LinkColumn("URL")
+
+            },
+                     
+            hide_index=True)
 
     st.markdown(
         """
