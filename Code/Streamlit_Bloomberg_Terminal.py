@@ -163,30 +163,39 @@ def OpenInsider(ticker):
 @st.cache_resource
 def Insider_Buying_graph(ticker_symbol, OpenInsider_Data):
     try:
-        # Fetch historical data using yfinance for the past 10 years
+    # Fetch historical data using yfinance for the past 4 years
         data = yf.download(ticker_symbol, period="4y")
 
-        # Create a Bokeh figure
-        p = figure(title=f"Insider Buying for {ticker_symbol}", x_axis_label="Date", x_axis_type="datetime", height=200, width=500)
+        data = pd.DataFrame(data['Adj Close'])
 
-        # Plot the closing prices on the primary y-axis (logarithmic scale)
-        line = p.line(data.index, np.log10(data["Close"]), line_width=2, color="blue")
-        p.yaxis[0].formatter = NumeralTickFormatter(format="0.00")
+        # Reset index to convert the date from the index to a column
+        data.reset_index(inplace=True)
 
-        # Create a secondary y-axis for OpenInsider data (logarithmic scale)
-        p.extra_y_ranges = {"insider": Range1d(start=1, end=np.log10(OpenInsider_Data["Value"].abs().max()) * 1.1)}
-        p.add_layout(LinearAxis(y_range_name="insider", axis_label="Insider Value"), "right")
-        p.yaxis[1].formatter = NumeralTickFormatter(format="0.00")
+        # Smoothen the data using rolling mean
+        window_size = 5
+        data['Smoothed Adj Close'] = data['Adj Close'].rolling(window_size).mean()
 
-        # Plot the OpenInsider data as bars on the secondary y-axis
-        colors = ['green' if value > 0 else 'red' for value in OpenInsider_Data["Value"]]
-        p.vbar(x=OpenInsider_Data["Trade Date"], top=np.log10(OpenInsider_Data["Value"].abs()), width=timedelta(days=3),
-                fill_color=colors, y_range_name="insider", line_color=None)
+        # Create the line chart for closing prices
+        line_chart = alt.Chart(data).mark_line().encode(
+            x='Date:T', 
+            y=alt.Y('Smoothed Adj Close', scale=alt.Scale(type='log', domain=[data['Adj Close'].min() * 0.9,data['Adj Close'].max() * 1.1]), title='Price')
+        )
 
-        # Set the range of the primary y-axis (logarithmic scale)
-        p.y_range = Range1d(start=np.log10(data["Close"].min()) * 0.9, end=np.log10(data["Close"].max()) * 1.1)
+        OpenInsider_Data['abs value'] = abs(OpenInsider_Data['Value'])
 
-        return p
+        # Create the bar chart for OpenInsider data
+        bar_chart = alt.Chart(OpenInsider_Data).mark_bar(size=4).encode(
+            x="Trade Date:T",
+            y=alt.Y("abs value", title="Insider Value"),
+            color=alt.condition(alt.datum.Value > 0, alt.value("green"), alt.value("red"))
+        )
+
+        # Combine the line chart and bar chart
+        chart = (line_chart + bar_chart).resolve_scale(
+            y='independent'
+         )
+
+        return chart
 
     except Exception as e:
         print(f"Error: {str(e)}")
@@ -199,15 +208,30 @@ def Ten_Yrs_Price_Movement_graph(ticker_symbol):
         # Fetch historical data using yfinance for the past 10 years
         data = yf.download(ticker_symbol, period="10y")
 
-        data = data['Adj Close']
+        data = pd.DataFrame(data['Adj Close'])
 
-        print(data)
+        # Reset index to convert the date from the index to a column
+        data.reset_index(inplace=True)
 
-        chart = alt.Chart(data).mark_line().encode(
-            x="Date:T",
-            y="Close:Q"
+        # Smoothen the data using rolling mean
+        window_size = 5
+        data['Smoothed Adj Close'] = data['Adj Close'].rolling(window_size).mean()
+
+        # Get the latest adjusted close value
+        latest_close = data['Adj Close'].iloc[-1]
+
+        alttable = alt.Chart(data).mark_line().encode(
+            x='Date:T',
+            y=alt.Y('Smoothed Adj Close', scale=alt.Scale(type='log', domain=[data['Adj Close'].min() * 0.9,data['Adj Close'].max() * 1.1])),
         )
 
+        # Add a dotted line for the latest adjusted close
+        latest_close_line = alt.Chart(pd.DataFrame({'Latest Close': [latest_close]})).mark_rule(color='red', strokeDash=[3, 3]).encode(
+            y=alt.Y('Latest Close', scale=alt.Scale(type='log', domain=[data['Adj Close'].min() * 0.9,data['Adj Close'].max() * 1.1]))
+        )
+
+        # Combine the line chart and the latest close line
+        chart = alttable + latest_close_line    
 
         return chart
 
@@ -502,7 +526,7 @@ def Directly_Copy_From_MacroTrend_Python(ticker, parent_folder):
 
 def Check_MacroTrend(ticker, period):
 
-    parent_folder = os.path.dirname(os.path.dirname(os.getcwd()))
+    parent_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     folder_path = os.path.join(parent_folder, "MacroTrend")
     ticker_folder = None
     ticker_file = None
@@ -705,7 +729,7 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
 
         with col2:
             st.write("OI Price/Actions")
-            st.bokeh_chart(insider_price_graph, use_container_width=True)
+            st.altair_chart(insider_price_graph, use_container_width=True)
 
     with tab2:
 
@@ -907,7 +931,7 @@ def Streamlit_Interface_Screener():
         parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
             # Go to the "Processed Data" folder
-        processed_data_dir = os.path.join(parent_dir, "Raw Data", "Finviz")
+        processed_data_dir = os.path.join(parent_dir, "Processed Data", "Finviz")
 
         os.chdir(processed_data_dir)
 

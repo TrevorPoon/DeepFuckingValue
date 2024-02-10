@@ -60,7 +60,7 @@ def Get_Result_From_Finviz(driver, name, link):
     min_delay = 0.1
     max_delay = 1
 
-    directory = os.path.join(os.path.dirname(os.getcwd()), "Raw Data", "Finviz") # Get the current working directory
+    directory = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Raw Data", "Finviz") # Get the current working directory
     print(directory)
     for filename in os.listdir(directory):
         if filename.startswith(name) and filename.endswith(".csv"):
@@ -184,7 +184,7 @@ def YahooFinance(ticker):
 
 def Cigar_Butt_Filter (name, driver, criteria):
 
-    directory = os.path.join(os.getcwd(), "Processed Data", "Finviz")  # Get the current working directory
+    directory = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Processed Data", "Finviz")  # Get the current working directory
 
     for filename in os.listdir(directory):
 
@@ -192,7 +192,7 @@ def Cigar_Butt_Filter (name, driver, criteria):
             os.remove(os.path.join(directory, filename))
             print(f"Deleted file: {filename}")
 
-    RawData_directory = os.path.join(os.getcwd(), "Raw Data", "Finviz")
+    RawData_directory = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Raw Data", "Finviz")
 
     for filename in os.listdir(RawData_directory):
 
@@ -552,7 +552,7 @@ def Directly_Copy_From_MacroTrend_Python(ticker, period, driver, parent_folder):
 
 def Get_Result_From_MacroTrend(csv_start_with, period, driver, Renew_all):
 
-    directory = os.path.join(os.path.dirname(os.getcwd()), "Processed Data", "Finviz")
+    directory = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Processed Data", "Finviz")
 
     for filename in os.listdir(directory):
         if filename.startswith(csv_start_with) and filename.endswith(".csv"):
@@ -563,7 +563,7 @@ def Get_Result_From_MacroTrend(csv_start_with, period, driver, Renew_all):
             #Overide
             # tickers = ["AAPL", "NVDA"]
 
-            parent_folder = os.path.dirname(os.getcwd())
+            parent_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             directory = os.path.join(parent_folder, "MacroTrend")
 
 
@@ -584,7 +584,7 @@ def main():
 
     run_Finviz = False
     run_Cigar_Butt = True
-    run_MacroTrend = False
+    run_MacroTrend = True
 
     # Set Chrome options
     chrome_options = webdriver.ChromeOptions()
