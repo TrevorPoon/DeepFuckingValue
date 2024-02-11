@@ -688,10 +688,59 @@ def filter_dataframe(df):
 
 
 #Pagination
-def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
-    st.title("Bloomberg Terminal -- " + ticker)
+def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
 
-    tab1, tab2, tab3, tab4 = st.tabs(["📈 TA", "🗃 FA", "🫂 Peers", "🔗 Websites"])
+    st.header("Bloomberg Terminal -- " + ticker, divider='rainbow')
+
+    tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs(["🖥️ Dashboard", "📈 TA", "🗃 FA", "🫂 Peers", "🔗 Websites", "🚀 Options"])
+
+    with tab0:
+
+        yf_ticker = yf.Ticker(ticker)
+
+        yf_info = yf_ticker.info
+
+        def stream_data(info):
+            for word in info.split(" "):
+                yield word + " " 
+                time.sleep(0.01)
+
+
+        st.subheader(yf_info['longName'])
+
+        st.write('Industry')
+        st.caption(yf_info['industry'])
+
+        st.write('Country')
+        st.caption(yf_info['country'])
+        
+        st.write('Description')
+        st.caption(yf_info['longBusinessSummary'])
+
+        news = pd.DataFrame(yf_ticker.news)
+
+        news = news[['title', 'publisher', 'link', 'relatedTickers']]
+
+        st.write('Sentiment')
+        st.dataframe(
+            news,
+            column_config={
+                "link": st.column_config.LinkColumn("URL")
+
+            },
+            hide_index=True)
+        if st.button("Major holders"):
+            st.write(yf_ticker.major_holders)
+        if st.button("Institutional Holders"):
+            st.write(yf_ticker.institutional_holders)
+        if st.button("Mutual Fund Holders"):
+            st.write(yf_ticker.mutualfund_holders)
+        
+        if st.button("Management"):
+            st.dataframe(yf_info['companyOfficers'])
+
+        if st.button("Yahoo Finance Info"):
+            st.write(yf_info)
 
     with tab1:
         st.write("10 Yrs Price Movement")
@@ -700,8 +749,7 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
         col1, col2 = st.columns([1, 2])
         with col1:
             st.write("OI Recent Buying (4yrs)")
-            st.dataframe(OpenInsider_Summary, hide_index=True)
-            st.markdown("<style>div[data-testid='stTable'] table { font-size: 11px; }</style>", unsafe_allow_html=True)
+            st.dataframe(OpenInsider_Summary, use_container_width=True, hide_index=True)
 
         with col2:
             st.write("OI Price/Actions")
@@ -884,8 +932,9 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
         url12 = ['Simply Wall St', "https://simplywall.st/dashboard"]
         url13 = ['Alpha Spread', "https://www.alphaspread.com/dashboard"]
         url14 = ['FINRA', "https://www.finra.org/finra-data/fixed-income/corp-and-agency"]
+        url15 = ['Yahoo Finance', "https://finance.yahoo.com/quote/" + ticker + "/"]
 
-        urls = [url2, url3, url4, url5, url6, url7, url8, url9, url10, url12, url13, url14]
+        urls = [url2, url3, url4, url5, url6, url7, url8, url9, url10, url12, url13, url14, url15]
 
         data = []
         for name, url in urls:
@@ -912,7 +961,7 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
         """
         <style>
         .main > div {
-            padding-top: 1rem;
+            padding-top: 2rem;
             padding-bottom: 1rem;
             padding-left: 0rem;
             padding-right: 0rem;
@@ -922,23 +971,84 @@ def Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_grap
         unsafe_allow_html=True,
     )
 
-def Streamlit_Interface_FullReport(ticker, UI_full_annual_fs, UI_full_quarter_fs):
+    return ticker
+
+def Streamlit_Interface_FS(ticker, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
 
     cm = sns.light_palette("green", as_cmap=True)
 
-    st.title("Full Financial Report -- " + ticker)
+    st.header("Full Financial Report -- " + ticker, divider = 'rainbow')
 
-    UI_full_annual_fs = UI_full_annual_fs.style.background_gradient(cmap=cm, axis=1)
-    UI_full_quarter_fs = UI_full_quarter_fs.style.background_gradient(cmap=cm, axis=1)
+    tab0, tab1 = st.tabs(["MacroTrend", "Yahoo Finance"])
 
-    st.dataframe(UI_full_annual_fs, use_container_width=True, hide_index=True)
-    st.dataframe(UI_full_quarter_fs, use_container_width=True, hide_index=True)
+    with tab0:
+
+        def statement_bar(full, essence):
+
+            transposed_df = full.transpose()
+            transposed_df.columns = transposed_df.iloc[0]
+            transposed_df = transposed_df[1:]
+
+            bar = pd.DataFrame(columns=["Bar"])
+
+            for i in range(len(transposed_df.columns)):
+                temp_list = []
+                for j in range(len(transposed_df)):
+                    temp_list.append(transposed_df.iloc[j, i])
+                bar.loc[i] = [temp_list]
+
+            df = pd.concat([full, bar], axis=1, ignore_index=False)
+
+            No_Deci = ['Shares Outstanding', 'Revenue', 'Gross Profit', 'Net Income/Loss',
+                     'Net Acquisitions/Divestitures',
+                     'Debt Issuance/Retirement Net - Total', 'Net Total Equity Issued/Repurchased',
+                     'Total Common And Preferred Stock Dividends Paid', 'Cash On Hand', 'Net Cash Flow',
+                     ]
+        
+            st.dataframe(
+                df,
+                column_config={
+                    "Bar": st.column_config.BarChartColumn(
+                        "Trend",
+                    ),
+                },
+                use_container_width=True, 
+                hide_index=False,
+            )
+
+        st.write("Annual Report")
+        statement_bar(UI_full_annual_fs, UI_essence_annual_fs)
+
+        st. write("Quarterly Report")
+        statement_bar(UI_full_quarter_fs, UI_essence_quarter_fs)
+
+    with tab1:
+
+        yf_ticker = yf.Ticker(ticker)
+
+        col1, col2 = st.columns([1,1])
+
+        with col1:
+            st.subheader("Income Statement")
+            st.dataframe(yf_ticker.income_stmt)
+            st.subheader("Balance Sheet")
+            st.dataframe(yf_ticker.balance_sheet)
+            st.subheader("Cashflow statement")
+            st.dataframe(yf_ticker.cashflow)
+        
+        with col2:
+            st.subheader(".")
+            st.dataframe(yf_ticker.quarterly_income_stmt)
+            st.subheader(".")
+            st.dataframe(yf_ticker.quarterly_balance_sheet)
+            st.subheader(".")
+            st.dataframe(yf_ticker.quarterly_cashflow)
 
     st.markdown(
         """
         <style>
         .main > div {
-            padding-top: 1rem;
+            padding-top: 2rem;
             padding-bottom: 1rem;
             padding-left: 0rem;
             padding-right: 0rem;
@@ -1016,12 +1126,12 @@ def Streamlit_Interface_Screener():
 
 def Streamlit_Interface(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ("Main Page", "Full Report", "Cigar Butt Screener"))
+    page = st.sidebar.radio("Go to", ("Bloomberg Terminal", "Financial Statement", "Cigar Butt Screener"))
 
-    if page == "Main Page":
-        Streamlit_Interface_MainPage(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs)
-    elif page == "Full Report":
-        Streamlit_Interface_FullReport(ticker, UI_full_annual_fs, UI_full_quarter_fs)
+    if page == "Bloomberg Terminal":
+        Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs)
+    elif page == "Financial Statement":
+        Streamlit_Interface_FS(ticker, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs)
     elif page == "Cigar Butt Screener":
         Streamlit_Interface_Screener()
 

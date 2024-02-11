@@ -542,7 +542,6 @@ def Directly_Copy_From_MacroTrend_Python(ticker, period, driver, parent_folder):
                     print(a + " " + j + " SUCCESS")
                 # error message for ticker that exists but have no data
                 else:
-                    driver.quit()
                     print("EMPTY TICKER")
             # error message for ticker that doesn't exist
             else:
@@ -560,9 +559,6 @@ def Get_Result_From_MacroTrend(csv_start_with, period, driver, Renew_all):
             df = pd.read_csv(file_path)
             tickers = df["Ticker"].tolist()
 
-            #Overide
-            # tickers = ["AAPL", "NVDA"]
-
             parent_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             directory = os.path.join(parent_folder, "MacroTrend")
 
@@ -575,15 +571,15 @@ def Get_Result_From_MacroTrend(csv_start_with, period, driver, Renew_all):
                 for ticker in tickers:
                     if ticker in os.listdir(directory):
                         print(ticker + " Repeated")
-                        continue
-                    Directly_Copy_From_MacroTrend_Python(ticker, period, driver, parent_folder)
-                    removing_ads(driver)
+                    else:
+                        Directly_Copy_From_MacroTrend_Python(ticker, period, driver, parent_folder)
+                        removing_ads(driver)
             break
 
 def main():
 
     run_Finviz = False
-    run_Cigar_Butt = True
+    run_Cigar_Butt = False
     run_MacroTrend = True
 
     # Set Chrome options
@@ -627,7 +623,7 @@ def main():
 
         Renew_all = False
 
-        csv_start_with = "CB_2024-01-30"
+        csv_start_with = "CB_Filter"
         period = ["A", "Q"]
         Get_Result_From_MacroTrend(csv_start_with, period, driver, Renew_all)
 
