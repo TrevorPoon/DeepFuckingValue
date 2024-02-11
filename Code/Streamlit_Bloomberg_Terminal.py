@@ -1003,6 +1003,7 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
 
     with tab4:
 
+        url1 = ["Finviz", "https://finviz.com/quote.ashx?t=" + ticker + "&p=d" ]
         url2 = ['Gurufocus', "https://www.gurufocus.com/stock/" + ticker + "/summary"]
         url3 = ['Tradingview', "https://www.tradingview.com/chart/?symbol=" + ticker]
         url4 = ['Investor Relations', "https://www.google.com/search?q=" + ticker + "+investor+relations+press+release"]
@@ -1016,8 +1017,9 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
         url13 = ['Alpha Spread', "https://www.alphaspread.com/dashboard"]
         url14 = ['FINRA', "https://www.finra.org/finra-data/fixed-income/corp-and-agency"]
         url15 = ['Yahoo Finance', "https://finance.yahoo.com/quote/" + ticker + "/"]
+        
 
-        urls = [url2, url3, url4, url5, url6, url7, url8, url9, url10, url12, url13, url14, url15]
+        urls = [url1, url2, url3, url4, url5, url6, url7, url8, url9, url10, url12, url13, url14, url15]
 
         data = []
         for name, url in urls:
@@ -1050,16 +1052,38 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
                 st.dataframe(yf_ticker.option_chain(date).calls, hide_index=True)
     
     with tab6:
-        
-        df = {
-            'Information:' : ['Long', 'Short', 'Industry Performance'], 
-            'Market Opinion' : ["[input]", "[input]", "[Input]"], 
-            'Your Stance / Rebuttal' : ["[input]", "[input]", "[Input]"] 
-        }
 
-        df = pd.DataFrame(df)
+        pitch = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"Pitch", ticker + '.csv')
 
-        st.data_editor(df, use_container_width=True, hide_index=True)
+        blank_pitch = {
+                        'Information' : ['Long', 'Short', 'Industry Performance'], 
+                        'Market Opinion' : ["[input]", "[input]", "[input]"], 
+                        'Your Stance / Rebuttal' : ["[input]", "[input]", "[input]"] 
+                    }
+
+        with st.form("Investment Thesis"):
+
+            if pitch: 
+                try:
+                    pitch_df = pd.read_csv(pitch) 
+                except: 
+                    pitch_df = pd.DataFrame(blank_pitch)
+
+            st.session_state['amend_pitch'] = st.data_editor(pitch_df, hide_index=True, use_container_width=True)
+            
+            uploaded = st.form_submit_button("Upload")
+            Clear_all = st.form_submit_button("Clear_All")
+
+            if uploaded:
+                pd.DataFrame(st.session_state['amend_pitch']).to_csv(pitch, index=False)
+
+            if Clear_all:
+                os.remove(pitch)
+                st.rerun()
+
+                
+               
+
 
 
     st.markdown(
