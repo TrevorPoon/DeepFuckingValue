@@ -45,6 +45,17 @@ def convert_to_numeric(value):
         return pd.to_numeric(value)
     except (TypeError, ValueError):
         return value
+    
+def transform_kmbt(value):
+    num = value[:-1]  # Extract the numerical part of the value
+    suffix = value[-1]  # Extract the suffix (k, m, b, t)
+
+    mapping = {'K': 10**3, 'M': 10**6, 'B': 10**9, 'T': 10**12}  # Define the mapping for each suffix
+
+    if suffix.upper() in mapping:
+        return float(num) * mapping[suffix.upper()]  # Multiply the numerical part by the corresponding multiplier
+    else:
+        return float(value) 
 
 
 
@@ -692,7 +703,7 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
 
     st.header("Bloomberg Terminal -- " + ticker, divider='rainbow')
 
-    tab0, tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🖥️ Dashboard", "📈 TA", "🗃 FA", "🫂 Peers", "🔗 Websites", "🚀 Options", "📝 Investment Thesis"])
+    tab0, tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["🖥️ Basic Info", "📈 TA", "🗃 FA", "🫂 Peers", "🔗 Websites", "🚀 Options", "📜 Transcript", "📝 Investment Thesis"])
 
     with tab0:
 
@@ -808,9 +819,6 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
 
         st.write('Earnings')
         st.dataframe(yf_ticker.earnings_dates, use_container_width=True)
-        st.write('Recommendation Summary')
-        st.dataframe(yf_ticker.recommendations, use_container_width=True)
-        st.divider()
 
         with st.expander("Management"):
             st.dataframe(yf_info['companyOfficers'])
@@ -819,7 +827,9 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
         with st.expander("Institutional Holders"):
             st.dataframe(yf_ticker.institutional_holders)
         with st.expander("Mutual Fund Holders"):
-            st.dataframe(yf_ticker.mutualfund_holders) 
+            st.dataframe(yf_ticker.mutualfund_holders)
+        with st.expander('Recommendation Summary'): 
+            st.dataframe(yf_ticker.recommendations, use_container_width=True)
         with st.expander("Yahoo Finance Info"):
             st.write(yf_info)
 
@@ -1049,18 +1059,153 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
         for date in yf_ticker.options:
 
             with st.expander(date):
-                st.dataframe(yf_ticker.option_chain(date).calls, hide_index=True)
+
+                df_calls = yf_ticker.option_chain(date).calls
+                df_puts = yf_ticker.option_chain(date).puts
+
+                df_calls_grpah = df_calls[['strike','impliedVolatility']]
+                df_puts_graph = df_puts[['strike', 'impliedVolatility']]
+
+                call_chart = alt.Chart(df_calls_grpah).mark_line(color='blue').encode(
+                    x='strike',
+                    y='impliedVolatility',
+                    tooltip=['strike', 'impliedVolatility'],
+                )
+
+                # Create a chart for put options
+                df_puts_graph = df_puts[['strike', 'impliedVolatility']]
+                put_chart = alt.Chart(df_puts_graph).mark_line(color='red').encode(
+                    x='strike',
+                    y='impliedVolatility',
+                    tooltip=['strike', 'impliedVolatility'],
+                    )
+                # Combine both charts
+                combined_chart = (call_chart + put_chart)
+
+                # Display the combined chart using Streamlit
+                st.subheader("Options Volatility Smile")
+                st.altair_chart(combined_chart, use_container_width=True)
+                st.caption("Blue: Calls, Red: Puts")
+
+                st.divider()
+                st.subheader("Calls")
+                st.dataframe(df_calls, hide_index=True)
+                st.divider()
+                st.subheader("Puts")
+                st.dataframe(df_puts, hide_index=True)
     
     with tab6:
 
-        pitch = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"Pitch", ticker + '.csv')
+        st.write("[Go to Seeking Alpha Transcript](https://seekingalpha.com/symbol/"+ ticker +"/earnings/transcripts)")
+        
+    with tab7:
+
+        pitch = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"Investment Thesis", "Pitch", ticker + '.csv')
+
+        check_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"Investment Thesis", "Criteria_Checklist", ticker + '.csv')
 
         blank_pitch = {
                         'Information' : ['Long', 'Short', 'Industry Performance'], 
-                        'Market Opinion' : ["[input]", "[input]", "[input]"], 
-                        'Your Stance / Rebuttal' : ["[input]", "[input]", "[input]"] 
+                        'Market Stance' : ["[input]", "[input]", "[input]"], 
+                        'My Stance / Rebuttal' : ["[input]", "[input]", "[input]"] 
                     }
+        
 
+        FCF = UI_essence_quarter_fs.loc[UI_full_quarter_fs.iloc[:, 0] == "Free Cash Flow Per Share"]
+        Debt_Issuance = UI_essence_quarter_fs.loc[UI_full_quarter_fs.iloc[:, 0] == "Debt Issuance/Retirement Net - Total"]
+        Equity_Issuance = UI_essence_quarter_fs.loc[UI_full_quarter_fs.iloc[:, 0] == "Net Total Equity Issued/Repurchased"]
+
+        check_list = {
+            'Metrics': [
+                'Boring sector',
+                'Free Cash flow',
+                'Reducing Debt',
+                'Repurchasing Shares',
+                'Low debt to equity',
+                'Past 10 year CAGR',
+                'Historical low valuation',
+                'ATH < -60%',
+                'PB > 0',
+                'Insider buying > 100K',
+                '52 wk low 15%',
+                'Forming a base'
+            ],
+            'Figures': [
+                yf_info['industry'],
+                FCF.iloc[:,-4:].values.tolist(),
+                Debt_Issuance.iloc[:,-4:].values.tolist(),
+                Equity_Issuance.iloc[:,-4:].values.tolist(),
+                float(ticker_table['Debt/Eq'].iloc[0]),
+                round((yf.download(ticker, period="10y")['Adj Close'].iloc[-1] / yf.download(ticker, period="10y")['Adj Close'].iloc[0]) ** (1/10) - 1, 4),
+                ticker_table['P/E'].iloc[0],
+                ticker_table['All-Time High'].iloc[0],
+                ticker_table['P/B'].iloc[0],
+                OpenInsider_Summary.loc[OpenInsider_Summary.iloc[:, 0] == "1M","TB"].iloc[0],
+                ticker_table['52W Low'].iloc[0],
+                ticker_table['SMA50'].iloc[0]
+            ],
+            'Checks': [
+                False,
+                FCF.iloc[:, -4:].values.sum() > 0,
+                Debt_Issuance.iloc[:,-4:].values.sum() < 0,
+                Equity_Issuance.iloc[:,-4:].values.sum() < 0,
+                float(ticker_table['Debt/Eq'].iloc[0]) < 1,
+                round((yf.download(ticker, period="10y")['Adj Close'].iloc[-1] / yf.download(ticker, period="10y")['Adj Close'].iloc[0]) ** (1/10) - 1, 4) > 0.08,
+                False,
+                float(ticker_table['All-Time High'].iloc[0]) < -0.6,
+                float(ticker_table['P/B'].iloc[0]) < 1,
+                transform_kmbt(OpenInsider_Summary.loc[OpenInsider_Summary.iloc[:, 0] == "1M","TB"].iloc[0]) > 100000,
+                float(ticker_table['52W Low'].iloc[0]) < 0.15,
+                float(ticker_table['SMA50'].iloc[0]) > 0
+            ],
+            'URL': [
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                'https://www.gurufocus.com/stock/' + ticker + '/summary',
+                '',
+                '',
+                '',
+                '',
+                ''
+            ],
+            'Notes': [
+                'Manual',
+                'Statement Below',
+                'Statement Below',
+                'Statement Below',
+                'Industry Average',
+                '',
+                'Gurufocus',
+                '',
+                '',
+                '',
+                '',
+                ''
+            ],
+            'Commentaries': [
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                ''
+            ] 
+        }
+
+        if st.button("Refresh"): 
+            st.rerun()
+        
+        st.subheader("Investment Thesis")
         with st.form("Investment Thesis"):
 
             if pitch: 
@@ -1073,18 +1218,46 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
             
             uploaded = st.form_submit_button("Upload")
             Clear_all = st.form_submit_button("Clear_All")
+            confirmation = st.checkbox('Are you sure to delete the file?')
 
             if uploaded:
                 pd.DataFrame(st.session_state['amend_pitch']).to_csv(pitch, index=False)
 
-            if Clear_all:
+            if Clear_all and confirmation:
                 os.remove(pitch)
+
+
+        st.subheader("CheckList")
+        with st.form("Checklist"):
+
+            if check_file: 
+                try:
+                    check_file_df = pd.read_csv(check_file) 
+                except: 
+                    check_file_df = pd.DataFrame(check_list)
+
+            st.session_state['amend_pitch_check'] = st.data_editor(check_file_df, 
+                                                                   column_config = {
+                                                                       'URL': st.column_config.LinkColumn('URL')
+                                                                       },
+                                                                        hide_index=True, use_container_width=True)
+            
+            uploaded = st.form_submit_button("Upload")
+            Clear_all = st.form_submit_button("Clear_All")
+            confirmation = st.checkbox('Are you sure to delete the file?')
+
+            if uploaded:
+                pd.DataFrame(st.session_state['amend_pitch_check']).to_csv(check_file, index=False)
+
+            if Clear_all and confirmation: 
+                os.remove(check_file)
                 st.rerun()
-
-                
-               
-
-
+ 
+            
+        with st.expander("Supplementary Quarterly Statement"):
+            st.dataframe(FCF, use_container_width=True, hide_index=True)
+            st.dataframe(Debt_Issuance, use_container_width=True, hide_index=True)
+            st.dataframe(Equity_Issuance, use_container_width=True, hide_index=True)
 
     st.markdown(
         """

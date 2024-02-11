@@ -1,8 +1,7 @@
 
 How to remove header new row in csv (raw)
 
-Buying Back Shares?
-Buying Back Debt?
+Check if finviz result is up to date
 
 MacroTrend Upgrade to cover all 
 
@@ -11,7 +10,7 @@ Add notes on each page
 
 ### Check List ###
 Boring sector
-Cash flow
+Free Cash flow
 Reducing debt / buying shares
 Healthy balance sheet ( low debt to equity)
 Past 5/10 years perf
