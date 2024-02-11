@@ -692,7 +692,7 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
 
     st.header("Bloomberg Terminal -- " + ticker, divider='rainbow')
 
-    tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs(["🖥️ Dashboard", "📈 TA", "🗃 FA", "🫂 Peers", "🔗 Websites", "🚀 Options"])
+    tab0, tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🖥️ Dashboard", "📈 TA", "🗃 FA", "🫂 Peers", "🔗 Websites", "🚀 Options", "📝 Investment Thesis"])
 
     with tab0:
 
@@ -706,7 +706,6 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
                 time.sleep(0.01)
 
         col1, col2  = st.columns([1,1])
-
 
         def KeyRatios(yf_ticker):
 
@@ -728,6 +727,7 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
                 z_score = (1.2 * (current_assets - current_liabilities) +
                         1.4 * retained_earnings +
                         3.3 * ebit + Sales) / total_assets + 0.6 * market_cap / total_liabilities
+                z_score = round(z_score,3)
             except:
                 z_score = "/"
 
@@ -736,6 +736,7 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
                 market_cap = info['marketCap']
                 enterprise_value = info['enterpriseValue']
                 market_cap_ev = market_cap / enterprise_value
+                market_cap_ev = round(market_cap_ev,3)
             except:
                 market_cap_ev = "/"
 
@@ -744,6 +745,7 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
                 total_liabilities = balance_sheet.loc['Total Liabilities Net Minority Interest', balance_sheet.columns[0]]
                 book_value = balance_sheet.loc['Common Stock Equity', balance_sheet.columns[0]]
                 leverage = total_assets / book_value
+                leverage = round(leverage,3)
             except:
                 leverage = "/"
 
@@ -753,6 +755,7 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
                 current_assets = balance_sheet.loc['Current Assets', balance_sheet.columns[0]]
                 total_liabilities = balance_sheet.loc['Total Liabilities Net Minority Interest', balance_sheet.columns[0]]
                 ncav_per_share = (current_assets - total_liabilities) / shares_outstanding
+                ncav_per_share = round(ncav_per_share, 3)
             except:
                 ncav_per_share = "/"
 
@@ -766,7 +769,7 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
                                     "Margin of Safety"]
                 }
             
-            df = pd.DataFrame(data).round(3)
+            df = pd.DataFrame(data)
 
             return df
         
@@ -782,6 +785,7 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
             
             st.write('Key Ratios')
             st.dataframe(KeyRatios(yf_ticker), use_container_width=True, hide_index=True)
+
             
         with col2:   
             st.write('Description')
@@ -802,14 +806,20 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
             hide_index=True)
         st.divider()
 
+        st.write('Earnings')
+        st.dataframe(yf_ticker.earnings_dates, use_container_width=True)
+        st.write('Recommendation Summary')
+        st.dataframe(yf_ticker.recommendations, use_container_width=True)
+        st.divider()
+
+        with st.expander("Management"):
+            st.dataframe(yf_info['companyOfficers'])
         with st.expander("Major holders"):
             st.dataframe(yf_ticker.major_holders)
         with st.expander("Institutional Holders"):
             st.dataframe(yf_ticker.institutional_holders)
         with st.expander("Mutual Fund Holders"):
             st.dataframe(yf_ticker.mutualfund_holders) 
-        with st.expander("Management"):
-            st.dataframe(yf_info['companyOfficers'])
         with st.expander("Yahoo Finance Info"):
             st.write(yf_info)
 
@@ -1039,6 +1049,18 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
             with st.expander(date):
                 st.dataframe(yf_ticker.option_chain(date).calls, hide_index=True)
     
+    with tab6:
+        
+        df = {
+            'Information:' : ['Long', 'Short', 'Industry Performance'], 
+            'Market Opinion' : ["[input]", "[input]", "[Input]"], 
+            'Your Stance / Rebuttal' : ["[input]", "[input]", "[Input]"] 
+        }
+
+        df = pd.DataFrame(df)
+
+        st.data_editor(df, use_container_width=True, hide_index=True)
+
 
     st.markdown(
         """
@@ -1166,6 +1188,8 @@ def Streamlit_Interface_Screener():
             df = pd.read_csv(latest_csv)
 
             df = df.drop(columns = ["No."])
+
+            df = df.sort_values(by=['Fundamental Score', '52W High'], ascending=[False, True])
             
             return df
     
@@ -1197,16 +1221,38 @@ def Streamlit_Interface_Screener():
 
         # Display the table in Streamlit
     
-    st.title("Cigar Butt Screener")
+    st.header("Cigar Butt Screener", divider = 'rainbow')
     options = st.selectbox(
     'Which dataframe would you want?',
     ('Filtered', 'Raw'))
 
     if options == "Raw":
-       st.data_editor(filter_dataframe(GetRaw()), use_container_width=True) 
-    elif options == "Filtered":
-        st.data_editor(filter_dataframe(GetProcessed()), use_container_width=True)
+       df = GetRaw()
+       st.data_editor(filter_dataframe(df), use_container_width=True)
+       st.write("[Go to Finviz Charts](https://finviz.com/screener.ashx?v=212&f=cap_microover,sh_instown_o10,sh_price_o1&ft=4&o=tickersfilter)")
 
+    elif options == "Filtered":
+        df = GetProcessed()
+        st.data_editor(filter_dataframe(df), use_container_width=True)
+        tickers = ','.join(df['Ticker'])
+        st.write("[Go to Finviz Charts](https://finviz.com/screener.ashx?v=212&f=cap_microover,sh_instown_o10,sh_price_o1&ft=4&t=" + tickers +"&o=tickersfilter)")
+
+    st.markdown(
+        """
+        <style>
+        .main > div {
+            padding-top: 2rem;
+            padding-bottom: 1rem;
+            padding-left: 0rem;
+            padding-right: 0rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    
+    
 def Streamlit_Interface(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
     st.sidebar.title("Navigation")
     page = st.sidebar.radio("Go to", ("Bloomberg Terminal", "Financial Statement", "Cigar Butt Screener"))
