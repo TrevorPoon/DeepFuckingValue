@@ -706,7 +706,6 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
                 time.sleep(0.01)
 
         col1, col2  = st.columns([1,1])
-        container = st.container(border = True)
 
 
         def KeyRatios(yf_ticker):
@@ -788,6 +787,7 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
             st.write('Description')
             st.caption(yf_info['longBusinessSummary'])
 
+        st.divider()
         news = pd.DataFrame(yf_ticker.news)
 
         news = news[['title', 'publisher', 'link', 'relatedTickers']]
@@ -800,6 +800,8 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
 
             },
             hide_index=True)
+        st.divider()
+
         with st.expander("Major holders"):
             st.dataframe(yf_ticker.major_holders)
         with st.expander("Institutional Holders"):
@@ -985,6 +987,8 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
             hide_index=True,
         )
 
+        st.divider()
+
         st.dataframe(Peers, hide_index=True)
 
     with tab4:
@@ -1025,6 +1029,16 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
             },
                      
             hide_index=True)
+
+    with tab5:
+
+        yf_ticker = yf.Ticker(ticker)
+
+        for date in yf_ticker.options:
+
+            with st.expander(date):
+                st.dataframe(yf_ticker.option_chain(date).calls, hide_index=True)
+    
 
     st.markdown(
         """
@@ -1207,7 +1221,7 @@ def Streamlit_Interface(ticker, OpenInsider_Summary, insider_price_graph, UI_ful
 
 def main():
 
-    ticker = "AAPL"
+    ticker = "NYCB"
 
     OpenInsider_Data, OpenInsider_Summary = OpenInsider(ticker)
     insider_price_graph = Insider_Buying_graph(ticker, OpenInsider_Data)

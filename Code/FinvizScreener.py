@@ -252,7 +252,7 @@ def Cigar_Butt_Filter (name, driver, criteria):
             df.loc[df['Profit M'] > 0.1, 'Fundamental Score'] += 1
             df.loc[df['Quick R'] > 1, 'Fundamental Score'] += 1
             df.loc[df['P/B'] < 1, 'Fundamental Score'] += 1
-            df.loc[df['Insider Trans'] >= 0, 'Fundamental Score'] += 1
+            df.loc[df['Insider Trans'] > 0, 'Fundamental Score'] += 1
 
             df.to_csv(file_path, index=False)
 
