@@ -1,12 +1,11 @@
 
-How to remove header new row in csv
+How to remove header new row in csv (raw)
 
 Buying Back Shares?
 Buying Back Debt?
 
-MacroTrend Upgrade
-conditional formatting
-Key ratios
+MacroTrend Upgrade to cover all 
+Key ratios on dashboard
 
 Add notes on each page
 

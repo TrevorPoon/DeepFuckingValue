@@ -705,23 +705,81 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
                 yield word + " " 
                 time.sleep(0.01)
 
+        col1, col2  = st.columns([1,1])
+        container = st.container(border = True)
 
-        st.subheader(yf_info['longName'])
 
-        st.write('Industry')
-        st.caption(yf_info['industry'])
+        def KeyRatios(yf_ticker):
 
-        st.write('Country')
-        st.caption(yf_info['country'])
+            financials = yf_ticker.quarterly_income_stmt
+            balance_sheet = yf_ticker.quarterly_balance_sheet
+            info = yf_ticker.info
+
+            # Calculate Z-Score
+            z_score = (1.2 * (balance_sheet.loc['Total Assets', balance_sheet.columns[0]] - balance_sheet.loc['Current Liabilities', balance_sheet.columns[0]]) +
+                    1.4 * balance_sheet.loc['Retained Earnings', financials.columns[0]] +
+                    3.3 * financials.loc['EBIT', financials.columns[0:4]].sum()) / balance_sheet.loc['Total Assets', balance_sheet.columns[0]]
+
+            # Calculate MarketCap / EV
+            market_cap = info['marketCap']
+            enterprise_value = info['enterpriseValue']
+            market_cap_ev = market_cap / enterprise_value
+
+            # Calculate Leverage
+            overall_assets = balance_sheet.loc['Total Assets', balance_sheet.columns[0]]
+            book_value = balance_sheet.loc['Common Stock Equity', balance_sheet.columns[0]]
+            leverage = overall_assets / book_value
+
+            # Calculate Cash Minus all debt minus MarketCap
+            cash = balance_sheet.loc['Cash', balance_sheet.columns[0]]
+            debt = balance_sheet.loc['Total Debt', balance_sheet.columns[0]]
+            net_cash = cash - debt - market_cap
+
+            # Calculate NCAV per Share
+            current_assets = balance_sheet.loc['Total Current Assets', balance_sheet.columns[0]]
+            current_tax_asset = balance_sheet.loc['Current Tax Assets', balance_sheet.columns[0]]
+            total_liabilities = balance_sheet.loc['Total Liab', balance_sheet.columns[0]]
+            minority_interest = balance_sheet.loc['Minority Interest', balance_sheet.columns[0]]
+            preferred_shares = balance_sheet.loc['Preferred Stock', balance_sheet.columns[0]]
+            off_balance_sheet_liabilities = balance_sheet.loc['Other Liab', balance_sheet.columns[0]]
+            shares_outstanding = info['sharesOutstanding']
+            ncav_per_share = (current_assets - current_tax_asset - total_liabilities - minority_interest - preferred_shares - off_balance_sheet_liabilities) / shares_outstanding
+
+            # Create DataFrame
+            data = {
+                'Z-Score': z_score,
+                'MarketCap / EV': market_cap_ev,
+                'Leverage': leverage,
+                'Net Cash': net_cash,
+                'NCAV per Share': ncav_per_share
+            }
+            df = pd.DataFrame(data, index=[ticker])
+
+            return df
         
-        st.write('Description')
-        st.caption(yf_info['longBusinessSummary'])
+
+
+        with col1:
+        
+            st.subheader(yf_info['longName'])
+
+            st.write('Industry')
+            st.caption(yf_info['industry'])
+
+            st.write('Country')
+            st.caption(yf_info['country'])
+
+            st.dataframe(KeyRatios(yf_ticker))
+            
+        with col2:   
+            st.write('Description')
+            st.caption(yf_info['longBusinessSummary'])
 
         news = pd.DataFrame(yf_ticker.news)
 
         news = news[['title', 'publisher', 'link', 'relatedTickers']]
 
-        st.write('Sentiment')
+        st.write('News Sentiment')
         st.dataframe(
             news,
             column_config={
@@ -729,17 +787,15 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
 
             },
             hide_index=True)
-        if st.button("Major holders"):
-            st.write(yf_ticker.major_holders)
-        if st.button("Institutional Holders"):
-            st.write(yf_ticker.institutional_holders)
-        if st.button("Mutual Fund Holders"):
-            st.write(yf_ticker.mutualfund_holders)
-        
-        if st.button("Management"):
+        with st.expander("Major holders"):
+            st.dataframe(yf_ticker.major_holders)
+        with st.expander("Institutional Holders"):
+            st.dataframe(yf_ticker.institutional_holders)
+        with st.expander("Mutual Fund Holders"):
+            st.dataframe(yf_ticker.mutualfund_holders) 
+        with st.expander("Management"):
             st.dataframe(yf_info['companyOfficers'])
-
-        if st.button("Yahoo Finance Info"):
+        with st.expander("Yahoo Finance Info"):
             st.write(yf_info)
 
     with tab1:
@@ -1138,7 +1194,7 @@ def Streamlit_Interface(ticker, OpenInsider_Summary, insider_price_graph, UI_ful
 
 def main():
 
-    ticker = "NYCB"
+    ticker = "AAPL"
 
     OpenInsider_Data, OpenInsider_Summary = OpenInsider(ticker)
     insider_price_graph = Insider_Buying_graph(ticker, OpenInsider_Data)
