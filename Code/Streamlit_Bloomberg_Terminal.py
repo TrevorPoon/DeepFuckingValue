@@ -716,49 +716,61 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
             info = yf_ticker.info
 
             # Calculate Z-Score
-            z_score = (1.2 * (balance_sheet.loc['Total Assets', balance_sheet.columns[0]] - balance_sheet.loc['Current Liabilities', balance_sheet.columns[0]]) +
-                    1.4 * balance_sheet.loc['Retained Earnings', financials.columns[0]] +
-                    3.3 * financials.loc['EBIT', financials.columns[0:4]].sum()) / balance_sheet.loc['Total Assets', balance_sheet.columns[0]]
+            try:
+                total_assets = balance_sheet.loc['Total Assets', balance_sheet.columns[0]]
+                current_assets = balance_sheet.loc['Current Assets', balance_sheet.columns[0]]
+                current_liabilities = balance_sheet.loc['Current Liabilities', balance_sheet.columns[0]]
+                retained_earnings = balance_sheet.loc['Retained Earnings', balance_sheet.columns[0]]
+                ebit = financials.loc['EBIT', financials.columns[0:4]].sum()
+                market_cap = info['marketCap']
+                total_liabilities = balance_sheet.loc['Total Liabilities Net Minority Interest', balance_sheet.columns[0]]
+                Sales = financials.loc['Total Revenue', financials.columns[0:4]].sum()
+
+                z_score = (1.2 * (current_assets - current_liabilities) +
+                        1.4 * retained_earnings +
+                        3.3 * ebit + Sales) / total_assets + 0.6 * market_cap / total_liabilities
+            except:
+                z_score = "/"
 
             # Calculate MarketCap / EV
-            market_cap = info['marketCap']
-            enterprise_value = info['enterpriseValue']
-            market_cap_ev = market_cap / enterprise_value
+            try:
+                market_cap = info['marketCap']
+                enterprise_value = info['enterpriseValue']
+                market_cap_ev = market_cap / enterprise_value
+            except:
+                market_cap_ev = "/"
 
             # Calculate Leverage
-            overall_assets = balance_sheet.loc['Total Assets', balance_sheet.columns[0]]
-            book_value = balance_sheet.loc['Common Stock Equity', balance_sheet.columns[0]]
-            leverage = overall_assets / book_value
-
-            # Calculate Cash Minus all debt minus MarketCap
-            cash = balance_sheet.loc['Cash', balance_sheet.columns[0]]
-            debt = balance_sheet.loc['Total Debt', balance_sheet.columns[0]]
-            net_cash = cash - debt - market_cap
+            try:
+                total_liabilities = balance_sheet.loc['Total Liabilities Net Minority Interest', balance_sheet.columns[0]]
+                book_value = balance_sheet.loc['Common Stock Equity', balance_sheet.columns[0]]
+                leverage = total_assets / book_value
+            except:
+                leverage = "/"
 
             # Calculate NCAV per Share
-            current_assets = balance_sheet.loc['Total Current Assets', balance_sheet.columns[0]]
-            current_tax_asset = balance_sheet.loc['Current Tax Assets', balance_sheet.columns[0]]
-            total_liabilities = balance_sheet.loc['Total Liab', balance_sheet.columns[0]]
-            minority_interest = balance_sheet.loc['Minority Interest', balance_sheet.columns[0]]
-            preferred_shares = balance_sheet.loc['Preferred Stock', balance_sheet.columns[0]]
-            off_balance_sheet_liabilities = balance_sheet.loc['Other Liab', balance_sheet.columns[0]]
-            shares_outstanding = info['sharesOutstanding']
-            ncav_per_share = (current_assets - current_tax_asset - total_liabilities - minority_interest - preferred_shares - off_balance_sheet_liabilities) / shares_outstanding
+            try:
+                shares_outstanding = info['sharesOutstanding']
+                current_assets = balance_sheet.loc['Current Assets', balance_sheet.columns[0]]
+                total_liabilities = balance_sheet.loc['Total Liabilities Net Minority Interest', balance_sheet.columns[0]]
+                ncav_per_share = (current_assets - total_liabilities) / shares_outstanding
+            except:
+                ncav_per_share = "/"
 
             # Create DataFrame
             data = {
-                'Z-Score': z_score,
-                'MarketCap / EV': market_cap_ev,
-                'Leverage': leverage,
-                'Net Cash': net_cash,
-                'NCAV per Share': ncav_per_share
-            }
-            df = pd.DataFrame(data, index=[ticker])
+                    'Metrics': ['Z-Score', 'MarketCap / EV', 'Leverage', 'NCAV per Share'],
+                    'Values': [z_score, market_cap_ev, leverage, ncav_per_share],
+                    'Description': ["A score below 1.81 means it's likely the company is headed for bankruptcy, while companies with scores above 2.99 are healthy", 
+                                    "The smaller it is, the larger EV is, implying a higher debt obligation", 
+                                    "Total Assets/ Book Value. The larger the absolute value it is, the more leverage it has.", 
+                                    "Margin of Safety"]
+                }
+            
+            df = pd.DataFrame(data).round(3)
 
             return df
         
-
-
         with col1:
         
             st.subheader(yf_info['longName'])
@@ -768,8 +780,9 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
 
             st.write('Country')
             st.caption(yf_info['country'])
-
-            st.dataframe(KeyRatios(yf_ticker))
+            
+            st.write('Key Ratios')
+            st.dataframe(KeyRatios(yf_ticker), use_container_width=True, hide_index=True)
             
         with col2:   
             st.write('Description')
