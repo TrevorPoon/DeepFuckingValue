@@ -52,8 +52,6 @@ def convert_to_numeric(value):
     except (TypeError, ValueError):
         return value
 
-
-
 # Extract Function
 def Get_Result_From_Finviz(driver, name, link):
 
@@ -117,9 +115,11 @@ def Get_Result_From_Finviz(driver, name, link):
 
     df = df.apply(lambda x: x.str.replace("%$", "e-2", regex=True) if x.dtype == 'object' else x)
     df = df.map(convert_to_numeric)
+
+    df.columns = df.columns.str.strip()
+
     filepath = os.path.join(directory, name + str(date.today()) + ".csv")
     df.to_csv(filepath, index=False)
-    print(name + str(date.today()) + " Success!")
 
 def OpenInsider(ticker, driver):
 
@@ -578,8 +578,8 @@ def Get_Result_From_MacroTrend(csv_start_with, period, driver, Renew_all):
 
 def main():
 
-    run_Finviz = False
-    run_Cigar_Butt = False
+    run_Finviz = True
+    run_Cigar_Butt = True
     run_MacroTrend = True
 
     # Set Chrome options
@@ -592,11 +592,7 @@ def main():
     if run_Finviz:
 
         name = "Screener_Cigar_Butt_Investing_"
-        link = "https://finviz.com/screener.ashx?v=152&f=cap_microover,sh_instown_o10,sh_price_o1&ft=4&o=ticker&c=0,1,3,4,5,6,7,8,9,10,11,74,19,21,27,28,29,31,33,36,38,41,53,57,58,125,126,65"
-        Get_Result_From_Finviz(driver, name, link)
-
-        name = "Screener_Most_Shorted_Stocks_"
-        link = "https://finviz.com/screener.ashx?v=152&f=sh_instown_o10,sh_short_o30&ft=3&o=-shortinterestratio&c=0,1,3,4,5,6,7,8,9,10,11,74,19,21,27,28,29,31,33,36,38,41,53,57,58,125,126,65"
+        link = "https://finviz.com/screener.ashx?v=152&f=cap_microover,sh_instown_o10,sh_price_o1&ft=4&o=ticker&c=0,1,79,3,4,5,6,7,8,9,10,11,12,13,74,14,15,77,17,18,19,20,21,23,22,26,27,28,29,30,33,34,35,36,37,38,39,41,42,43,44,46,48,53,57,58,125,126,68,65"
         Get_Result_From_Finviz(driver, name, link)
 
     if run_Cigar_Butt:
