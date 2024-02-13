@@ -9,15 +9,14 @@ To initialize the Streamlit HTML, run the following commands:
 ```bash
 cd code
 streamlit run Streamlit_Bloomberg_Terminal.py
-Make sure you have Streamlit installed on your machine before running the above commands.
-
 ```
+
+Make sure you have Streamlit installed on your machine before running the above commands.
 
 ## Installation
 To install all the required packages, use the following command:
 
 ```bash
-Copy
 pip install -r requirements.txt
 ```
 
