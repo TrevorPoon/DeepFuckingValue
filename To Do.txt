@@ -5,20 +5,5 @@ Check if finviz result is up to date
 
 MacroTrend Upgrade to cover all 
 
-Add notes on each page
-
-
-### Check List ###
-Boring sector
-Free Cash flow
-Reducing debt / buying shares
-Healthy balance sheet ( low debt to equity)
-Past 5/10 years perf
-Historical low valuation
-ATH < -60%
-PB > 0
-Insider buying
-52 wk low 15%
-Forming a base
 
 

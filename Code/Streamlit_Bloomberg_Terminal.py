@@ -1360,7 +1360,7 @@ def Streamlit_Interface_FS(ticker, UI_full_annual_fs, UI_essence_annual_fs, UI_f
         unsafe_allow_html=True,
     )
 
-def Streamlit_Interface_Screener():
+def Streamlit_Interface_Screener(pathway):
 
     def GetProcessed():
 
@@ -1419,21 +1419,40 @@ def Streamlit_Interface_Screener():
         # Display the table in Streamlit
     
     st.header("Cigar Butt Screener", divider = 'rainbow')
-    options = st.selectbox(
-    'Which dataframe would you want?',
-    ('Filtered', 'Raw'))
 
-    if options == "Raw":
-       df = GetRaw()
-       st.data_editor(filter_dataframe(df), use_container_width=True)
-       st.write("[Go to Finviz Charts](https://finviz.com/screener.ashx?v=212&f=cap_microover,sh_instown_o10,sh_price_o1&ft=4&o=tickersfilter)")
 
-    elif options == "Filtered":
-        df = GetProcessed()
-        st.data_editor(filter_dataframe(df), use_container_width=True)
-        tickers = ','.join(df['Ticker'])
-        st.write("[Go to Finviz Charts](https://finviz.com/screener.ashx?v=212&f=cap_microover,sh_instown_o10,sh_price_o1&ft=4&t=" + tickers +"&o=tickersfilter)")
+    col1, col2 = st.columns([5,1])
 
+    with col1:
+
+        options = st.selectbox(
+        'Which screener would you want?',
+        ('Filtered', 'Raw'))
+
+        if options == "Raw":
+            df = GetRaw()
+            st.data_editor(filter_dataframe(df), use_container_width=True)
+            st.write("[Go to Finviz Charts](https://finviz.com/screener.ashx?v=212&f=cap_microover,sh_instown_o10,sh_price_o1&ft=4&o=tickersfilter)")
+
+        elif options == "Filtered":
+            df = GetProcessed()
+            st.data_editor(filter_dataframe(df), use_container_width=True)
+            tickers = ','.join(df['Ticker'])
+            st.write("[Go to Finviz Charts](https://finviz.com/screener.ashx?v=212&f=cap_microover,sh_instown_o10,sh_price_o1&ft=4&t=" + tickers + "&o=tickersfilter)")
+
+    with col2:
+
+         with st.form("Ticker Input"):
+
+            Ticker_Input = st.text_input('Ticker')
+            
+            Submitted = st.form_submit_button("Submit")
+
+            if Submitted:
+
+                with open(pathway, "w") as file:
+                    file.write(Ticker_Input)
+                
     st.markdown(
         """
         <style>
@@ -1448,9 +1467,11 @@ def Streamlit_Interface_Screener():
         unsafe_allow_html=True,
     )
 
+
     
     
 def Streamlit_Interface(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
+
     st.sidebar.title("Navigation")
     page = st.sidebar.radio("Go to", ("Bloomberg Terminal", "Financial Statement", "Cigar Butt Screener"))
 
@@ -1461,17 +1482,36 @@ def Streamlit_Interface(ticker, OpenInsider_Summary, insider_price_graph, UI_ful
     elif page == "Cigar Butt Screener":
         Streamlit_Interface_Screener()
 
+    
+
 
 def main():
 
-    ticker = "NYCB"
+    st.sidebar.title("Navigation")
+    page = st.sidebar.radio("Go to", ("Cigar Butt Screener", "Bloomberg Terminal", "Financial Statement"))
 
-    OpenInsider_Data, OpenInsider_Summary = OpenInsider(ticker)
-    insider_price_graph = Insider_Buying_graph(ticker, OpenInsider_Data)
-    UI_full_annual_fs, UI_essence_annual_fs = annual_financial_table(ticker, "Annual")
-    UI_full_quarter_fs, UI_essence_quarter_fs = annual_financial_table(ticker, "Quarter")
 
-    Streamlit_Interface(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs)
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    terminal_ticker_pathway = os.path.join(parent_dir, "Terminal_Ticker.txt")
+
+    if page == "Cigar Butt Screener":
+        Streamlit_Interface_Screener(terminal_ticker_pathway)
+
+    with open(terminal_ticker_pathway, "r") as file:
+        ticker = file.read() 
+
+    if ticker:
+
+        OpenInsider_Data, OpenInsider_Summary = OpenInsider(ticker)
+        insider_price_graph = Insider_Buying_graph(ticker, OpenInsider_Data)
+        UI_full_annual_fs, UI_essence_annual_fs = annual_financial_table(ticker, "Annual")
+        UI_full_quarter_fs, UI_essence_quarter_fs = annual_financial_table(ticker, "Quarter")
+
+        if page == "Bloomberg Terminal":
+            Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs)
+        elif page == "Financial Statement":
+            Streamlit_Interface_FS(ticker, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs)
 
 if __name__ == "__main__":
     main()
