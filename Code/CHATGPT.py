@@ -1,15 +1,13 @@
 # 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
 
-from openai import OpenAI
+from opnai import OpenAI
 import openai
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-openai.api_base = "https://flag.smarttrot.com/"
 
 client = OpenAI()
-
 
 
 completion = client.chat.completions.create(
