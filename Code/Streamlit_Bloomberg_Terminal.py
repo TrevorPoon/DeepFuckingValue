@@ -821,17 +821,40 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
         st.dataframe(yf_ticker.earnings_dates, use_container_width=True)
 
         with st.expander("Management"):
-            st.dataframe(yf_info['companyOfficers'])
+            try:
+                st.dataframe(yf_info['companyOfficers'])
+            except Exception as e:
+                st.write("Error occurred while displaying Management data:", e)
+
         with st.expander("Major holders"):
-            st.dataframe(yf_ticker.major_holders)
+            try:
+                st.dataframe(yf_ticker.major_holders)
+            except Exception as e:
+                st.write("Error occurred while displaying Major holders data:", e)
+
         with st.expander("Institutional Holders"):
-            st.dataframe(yf_ticker.institutional_holders)
+            try:
+                st.dataframe(yf_ticker.institutional_holders)
+            except Exception as e:
+                st.write("Error occurred while displaying Institutional Holders data:", e)
+
         with st.expander("Mutual Fund Holders"):
-            st.dataframe(yf_ticker.mutualfund_holders)
+            try:
+                st.dataframe(yf_ticker.mutualfund_holders)
+            except Exception as e:
+                st.write("Error occurred while displaying Mutual Fund Holders data:", e)
+
         with st.expander('Recommendation Summary'): 
-            st.dataframe(yf_ticker.recommendations, use_container_width=True)
+            try:
+                st.dataframe(yf_ticker.recommendations, use_container_width=True)
+            except Exception as e:
+                st.write("Error occurred while displaying Recommendation Summary data:", e)
+
         with st.expander("Yahoo Finance Info"):
-            st.write(yf_info)
+            try:
+                st.write(yf_info)
+            except Exception as e:
+                st.write("Error occurred while displaying Yahoo Finance Info:", e)
 
     with tab1:
         st.write("10 Yrs Price Movement")
