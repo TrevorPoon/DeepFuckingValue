@@ -61,13 +61,17 @@ def transform_kmbt(value):
 
 
 # Data Extraction
+    
 @st.cache_resource
 def OpenInsider(ticker):
 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("start-maximized")
     chrome_options.add_argument("headless")
-    driver = uc.Chrome(options=chrome_options)
+    try: 
+        driver = uc.Chrome(options=chrome_options)
+    except:
+        driver = webdriver.Chrome(options=chrome_options)
 
     url = f"http://openinsider.com/screener?s={ticker}&o=&pl=&ph=&ll=&lh=&fd=1461&fdr=&td=0&tdr=&fdlyl=&fdlyh=&daysago=&xp=1&xs=1&vl=&vh=&ocl=&och=&sic1=-1&sicl=100&sich=9999&grp=0&nfl=&nfh=&nil=&nih=&nol=&noh=&v2l=&v2h=&oc2l=&oc2h=&sortcol=0&cnt=100&page=1"
     driver.get(url)
@@ -1385,6 +1389,7 @@ def Streamlit_Interface_FS(ticker, UI_full_annual_fs, UI_essence_annual_fs, UI_f
 
 def Streamlit_Interface_Screener(pathway):
 
+
     def GetProcessed():
 
         # Get the parent directory of the Python code
@@ -1489,40 +1494,58 @@ def Streamlit_Interface_Screener(pathway):
         """,
         unsafe_allow_html=True,
     )
-
-
     
-    
-def Streamlit_Interface(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
+def Streamlit_Interface_Portfolio(pathway):
 
-    st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ("Bloomberg Terminal", "Financial Statement", "Cigar Butt Screener"))
+    pathway = os.path.join(pathway, "Streamlit_Data_Save", "Portfolio.csv")
 
-    if page == "Bloomberg Terminal":
-        Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs)
-    elif page == "Financial Statement":
-        Streamlit_Interface_FS(ticker, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs)
-    elif page == "Cigar Butt Screener":
-        Streamlit_Interface_Screener()
+    df = pd.read_csv(pathway)
 
-    
+    st.dataframe(df)
+
+    st.write(len(df))
+
+    current_portfolio = []
+
+    for i in range(len(df)):
+
+        Asset_Category = df.iloc[i, df.columns.get_loc('Asset Category')]
+        Currency = df.iloc[i, df.columns.get_loc('Currency')]
+        Symbol = df.iloc[i, df.columns.get_loc('Symbol')]
+        Date = df.iloc[i, df.columns.get_loc('Date/Time')]
+        Quantity = df.iloc[i, df.columns.get_loc('Quantity')]
+        Price = df.iloc[i, df.columns.get_loc('T. Price')]
+        Commission = df.iloc[i, df.columns.get_loc('Comm/Fee')]
+
+        match Asset_Category: 
+            case 'Cash':
+                current_portfolio.append[Asset_Category, Currency, Symbol, Quantity, Price, Quantity * Price]
+        
+
+
+                 
+
+
+
 
 
 def main():
 
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ("Cigar Butt Screener", "Bloomberg Terminal", "Financial Statement"))
-
+    page = st.sidebar.radio("Go to", ("Portfolio Analysis", "Cigar Butt Screener", "Bloomberg Terminal", "Financial Statement"))
 
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    terminal_ticker_pathway = os.path.join(parent_dir, "Terminal_Ticker.txt")
+    terminal_ticker_pathway = os.path.join(parent_dir, "Streamlit_Data_Save", "Terminal_Ticker.txt")
 
     if page == "Cigar Butt Screener":
         Streamlit_Interface_Screener(terminal_ticker_pathway)
+    elif page == "Portfolio Analysis":
+        Streamlit_Interface_Portfolio(parent_dir)
+
 
     with open(terminal_ticker_pathway, "r") as file:
-        ticker = file.read() 
+        ticker = file.read()
 
     if ticker:
 

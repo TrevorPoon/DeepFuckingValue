@@ -17,7 +17,7 @@ Make sure you have Streamlit installed on your machine before running the above 
 To install all the required packages, use the following command:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirement.txt
 ```
 
 This will install all the necessary dependencies needed to run the Streamlit Bloomberg Terminal.

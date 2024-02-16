@@ -5,3 +5,5 @@ MacroTrend Upgrade to cover all
 supplemetary graph
 gitignore
 candlestick chart over 2 years
+portfolio tracker
+market updates
