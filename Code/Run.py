@@ -1,7 +1,7 @@
 import subprocess
+import os
 
-# Command 1: cd code
-subprocess.run(['cd', 'code'], shell=True)
+parent_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Command 2: streamlit run Streamlit_Bloomberg_Terminal.py
-subprocess.run(['streamlit', 'run', 'Streamlit_Bloomberg_Terminal.py'], shell=True)
+process = subprocess.Popen(["streamlit", "run", os.path.join(
+            parent_dir, 'Streamlit_Bloomberg_Terminal.py')])

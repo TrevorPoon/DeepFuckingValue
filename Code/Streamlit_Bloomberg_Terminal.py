@@ -891,6 +891,8 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
 
             df = pd.concat([essence, bar], axis=1, ignore_index=False)
 
+            
+
             search_values = ['Shares Outstanding', 'Revenue', 'Gross Profit', 'Net Income/Loss',
                      'Net Acquisitions/Divestitures',
                      'Debt Issuance/Retirement Net - Total', 'Net Total Equity Issued/Repurchased',
@@ -911,6 +913,8 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
                      ]
             
             statement = df[df.iloc[:, 0].isin(No_Deci)].round(0)
+            statement.set_index(statement.columns[0], inplace=True)
+            
 
             st.dataframe(
                 statement,
@@ -924,6 +928,7 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
             )
 
             statement = df[~df.iloc[:, 0].isin(No_Deci)].round(3)
+            statement.set_index(statement.columns[0], inplace=True)
 
             st.dataframe(
                 statement,
@@ -1131,10 +1136,12 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
 
         check_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"Investment Thesis", "Criteria_Checklist", ticker + '.csv')
 
+        To_Do_Save = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"Investment Thesis", "To Do", ticker + '.csv')
+
         blank_pitch = {
                         'Information' : ['Long', 'Short', 'Industry Performance'], 
-                        'Market Stance' : ["[input]", "[input]", "[input]"], 
-                        'My Stance / Rebuttal' : ["[input]", "[input]", "[input]"] 
+                        'Market Stance' : ["[input]"] * 3, 
+                        'My Stance / Rebuttal' : ["[input]"] * 3 
                     }
         
 
@@ -1142,7 +1149,14 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
         Debt_Issuance = UI_essence_quarter_fs.loc[UI_full_quarter_fs.iloc[:, 0] == "Debt Issuance/Retirement Net - Total"]
         Equity_Issuance = UI_essence_quarter_fs.loc[UI_full_quarter_fs.iloc[:, 0] == "Net Total Equity Issued/Repurchased"]
 
+        To_Do_Blank_List = {
+                        'Task' : ['Go Through Official Websites', 'Read Last 4 Quarter Financial Report','Go through all the fundamentals','Check the management team', 'Seeking Alpha', 'Investment Thesis'], 
+                        'Done' : [False] * 6, 
+                        'Notes' : [''] * 6
+                    }
+
         check_list = {
+    
             'Metrics': [
                 'Boring sector',
                 'Free Cash flow',
@@ -1232,6 +1246,28 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
         if st.button("Refresh"): 
             st.rerun()
         
+        st.subheader("To Do List")
+        with st.form("To Do List"):
+
+            if To_Do_Save: 
+                try:
+                    to_do_df = pd.read_csv(To_Do_Save) 
+                except: 
+                    to_do_df = pd.DataFrame(To_Do_Blank_List)
+
+            st.session_state['updated_todo'] = st.data_editor(to_do_df, hide_index=True, use_container_width=True)
+            
+            uploaded = st.form_submit_button("Upload")
+            Clear_all = st.form_submit_button("Clear_All")
+            confirmation = st.checkbox('Are you sure to delete the file?')
+
+            if uploaded:
+                pd.DataFrame(st.session_state['updated_todo']).to_csv(To_Do_Save, index=False)
+
+            if Clear_all and confirmation:
+                os.remove(To_Do_Save)
+
+
         st.subheader("Investment Thesis")
         with st.form("Investment Thesis"):
 
@@ -1282,9 +1318,17 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
  
             
         with st.expander("Supplementary Quarterly Statement"):
-            st.dataframe(FCF, use_container_width=True, hide_index=True)
-            st.dataframe(Debt_Issuance, use_container_width=True, hide_index=True)
-            st.dataframe(Equity_Issuance, use_container_width=True, hide_index=True)
+            
+            FCF_graph = FCF.set_index(FCF.columns[0], inplace=False).transpose()
+            Debt_Issuance_graph = Debt_Issuance.set_index(Debt_Issuance.columns[0], inplace=False).transpose()
+            Equity_Issuance_graph = Equity_Issuance.set_index(Equity_Issuance.columns[0], inplace=False).transpose()
+
+            st.subheader(FCF_graph.columns[0])
+            st.bar_chart(FCF_graph, color = "#FF9800")
+            st.subheader(Debt_Issuance_graph.columns[0])
+            st.bar_chart(Debt_Issuance_graph, color="#4CAF50")
+            st.subheader(Equity_Issuance_graph.columns[0])
+            st.bar_chart(Equity_Issuance_graph, color= "#2196F3")
 
     st.markdown(
         """
@@ -1501,8 +1545,6 @@ def Streamlit_Interface_Portfolio(pathway):
 
     df = pd.read_csv(pathway)
 
-    st.dataframe(df)
-
     # Initialize cash balance
     cash_balance = 0
 
@@ -1562,11 +1604,11 @@ def Streamlit_Interface_Portfolio(pathway):
             current_portfolio.append({
                 'Asset Category': asset_category, 
                 'Symbol': symbol,
+                'Current Price': round(current_price,2),
+                'Quantity': quantity, 
                 'Sector': sector, 
                 'Industry': industry,
                 'Market Cap': marketcap,
-                'Current Price': round(current_price,2),
-                'Quantity': quantity,
                 'Amount': round(current_price * quantity,2)
             })
         
@@ -1584,23 +1626,62 @@ def Streamlit_Interface_Portfolio(pathway):
 
 
     # Display the current portfolio position
-    st.write("\nCurrent Portfolio Position:")
+    st.header('Portfolio Overview', divider = 'rainbow')
+    
+    st.subheader("\nCurrent Portfolio Position")
     st.dataframe(current_portfolio, use_container_width=True, hide_index=True)
 
-    sector_piechart = alt.Chart(current_portfolio).mark_arc().encode(
-        theta="Amount",
-        color="Sector", 
+    col1, col2 = st.columns([1,1])
+
+    with col1:
+
+        sector_df = pd.DataFrame(current_portfolio.groupby(['Sector'])['Amount'].sum()).reset_index()
+        sector_df['Percent Holdings'] = round(sector_df['Amount'] / sector_df['Amount'].sum() * 100, 1) 
+
+        sector_piechart = alt.Chart(sector_df).mark_arc().encode(
+            theta="Percent Holdings",
+            color="Sector", 
+        )
+
+        sector_piechart = sector_piechart.mark_arc(outerRadius=70)
+        sector_piechart_label = sector_piechart.mark_text(radius=90, size=10).encode(text="Percent Holdings:N")
+
+        st.altair_chart(sector_piechart + sector_piechart_label, theme='streamlit', use_container_width=True)
+    
+    with col2:
+
+        industry_df = pd.DataFrame(current_portfolio.groupby(['Industry'])['Amount'].sum()).reset_index()
+        industry_df['Percent Holdings'] = round(industry_df['Amount'] / industry_df['Amount'].sum() * 100, 1) 
+
+        Industry_piechart = alt.Chart(industry_df).mark_arc().encode(
+            theta="Percent Holdings",
+            color="Industry", 
+        )
+
+        Industry_piechart = Industry_piechart.mark_arc(outerRadius=70)
+        Industry_piechart_label = Industry_piechart.mark_text(radius=90, size=10).encode(text="Percent Holdings:N")
+
+        st.altair_chart(Industry_piechart + Industry_piechart_label, theme='streamlit', use_container_width=True)
+
+    st.dataframe(df)
+
+    st.markdown(
+        """
+        <style>
+        .main > div {
+            padding-top: 2rem;
+            padding-bottom: 1rem;
+            padding-left: 0rem;
+            padding-right: 0rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
     )
-
-    sector_piechart = sector_piechart.mark_arc(outerRadius=120)
-    sector_piechart_label = sector_piechart.mark_text(radius=140, size=10).encode(text="Amount:N")
-
-    st.altair_chart(sector_piechart + sector_piechart_label, theme='streamlit', use_container_width=True)
         
 
 
                  
-
 
 
 
