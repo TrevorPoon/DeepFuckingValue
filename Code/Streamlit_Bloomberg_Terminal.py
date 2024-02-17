@@ -703,7 +703,7 @@ def filter_dataframe(df):
 
 
 #Pagination
-def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
+def Streamlit_Interface_BT(ticker, OpenInsider_Summary, _insider_price_graph, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
 
     st.header("Bloomberg Terminal -- " + ticker, divider='rainbow')
 
@@ -871,82 +871,126 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
 
         with col2:
             st.write("OI Price/Actions")
-            st.altair_chart(insider_price_graph, use_container_width=True)
+            st.altair_chart(_insider_price_graph, use_container_width=True)
 
     with tab2:
 
-        def statement_bar(full, essence):
+        def statement_bar(full, essence, choice):
 
-            transposed_df = full.transpose()
-            transposed_df.columns = transposed_df.iloc[0]
-            transposed_df = transposed_df[1:]
+            transposed_essence_df = essence.transpose().reset_index()
+            transposed_essence_df.columns = transposed_essence_df.iloc[0]
+            transposed_essence_df = transposed_essence_df[1:]
+
+            chart = alt.Chart(transposed_essence_df).mark_bar().encode(
+                x=transposed_essence_df.columns[0],
+                y=choice,
+                color=alt.condition(
+                    alt.datum[choice] > 0,
+                    alt.value("orange"),  # The positive color
+                    alt.value("brown")  # The negative color
+                )
+            ).properties(height=300)
+                
+            transposed_full_df = full.transpose()
+            transposed_full_df.columns = transposed_full_df.iloc[0]
+            transposed_full_df = transposed_full_df[1:]
 
             bar = pd.DataFrame(columns=["Bar"])
 
-            for i in range(len(transposed_df.columns)):
+            for i in range(len(transposed_full_df.columns)):
                 temp_list = []
-                for j in range(len(transposed_df)):
-                    temp_list.append(transposed_df.iloc[j, i])
+                for j in range(len(transposed_full_df)):
+                    temp_list.append(transposed_full_df.iloc[j, i])
                 bar.loc[i] = [temp_list]
 
             df = pd.concat([essence, bar], axis=1, ignore_index=False)
 
-            
-
             search_values = ['Shares Outstanding', 'Revenue', 'Gross Profit', 'Net Income/Loss',
-                     'Net Acquisitions/Divestitures',
-                     'Debt Issuance/Retirement Net - Total', 'Net Total Equity Issued/Repurchased',
-                     'Total Common And Preferred Stock Dividends Paid', 'Cash On Hand', 'Net Cash Flow',
-                     'Current Ratio',
-                     'Long-term Debt / Capital', 'Debt/Equity Ratio', 'Gross Margin', 'Net Profit Margin',
-                     'ROE - Return On Equity', 'Return On Tangible Equity', 'ROA - Return On Assets',
-                     'ROI - Return On Investment', 'Book Value Per Share', 'Operating Cash Flow Per Share',
-                     'Free Cash Flow Per Share', 'EPS - Earnings Per Share']
+                    'Net Acquisitions/Divestitures',
+                    'Debt Issuance/Retirement Net - Total', 'Net Total Equity Issued/Repurchased',
+                    'Total Common And Preferred Stock Dividends Paid', 'Cash On Hand', 'Net Cash Flow',
+                    'Current Ratio',
+                    'Long-term Debt / Capital', 'Debt/Equity Ratio', 'Gross Margin', 'Net Profit Margin',
+                    'ROE - Return On Equity', 'Return On Tangible Equity', 'ROA - Return On Assets',
+                    'ROI - Return On Investment', 'Book Value Per Share', 'Operating Cash Flow Per Share',
+                    'Free Cash Flow Per Share', 'EPS - Earnings Per Share']
 
             # Filter the DataFrame based on the values in the first column
             df = df[df.iloc[:, 0].isin(search_values)]
 
             No_Deci = ['Shares Outstanding', 'Revenue', 'Gross Profit', 'Net Income/Loss',
-                     'Net Acquisitions/Divestitures',
-                     'Debt Issuance/Retirement Net - Total', 'Net Total Equity Issued/Repurchased',
-                     'Total Common And Preferred Stock Dividends Paid', 'Cash On Hand', 'Net Cash Flow',
-                     ]
+                    'Net Acquisitions/Divestitures',
+                    'Debt Issuance/Retirement Net - Total', 'Net Total Equity Issued/Repurchased',
+                    'Total Common And Preferred Stock Dividends Paid', 'Cash On Hand', 'Net Cash Flow',
+                    ]
             
-            statement = df[df.iloc[:, 0].isin(No_Deci)].round(0)
-            statement.set_index(statement.columns[0], inplace=True)
+            Fun_statement = df[df.iloc[:, 0].isin(No_Deci)].round(0)
+            Fun_statement.set_index(Fun_statement.columns[0], inplace=True)
             
+            ratio_statement = df[~df.iloc[:, 0].isin(No_Deci)].round(3)
+            ratio_statement.set_index(ratio_statement.columns[0], inplace=True)
 
-            st.dataframe(
-                statement,
-                column_config={
-                    "Bar": st.column_config.BarChartColumn(
-                        "Trend",
-                    ),
-                },
-                use_container_width=True, 
-                hide_index=False,
-            )
+                    
+            return chart, Fun_statement, ratio_statement
 
-            statement = df[~df.iloc[:, 0].isin(No_Deci)].round(3)
-            statement.set_index(statement.columns[0], inplace=True)
+        transposed_essence_df = UI_essence_annual_fs.transpose().reset_index()
+        transposed_essence_df.columns = transposed_essence_df.iloc[0]
+        transposed_essence_df = transposed_essence_df[1:]
 
-            st.dataframe(
-                statement,
-                column_config={
-                    "Bar": st.column_config.BarChartColumn(
-                        "Trend",
-                    ),
-                },
-                use_container_width=True, 
-                hide_index=False,
-            )
+        choice = st.select_slider('Choose One Metric', options=transposed_essence_df.columns[1:])
 
-        st.write("Annual Report")
-        statement_bar(UI_full_annual_fs, UI_essence_annual_fs)
+        st.subheader("Annual Report")
+        annual_chart, Fun_statement, ratio_statement = statement_bar(UI_full_annual_fs, UI_essence_annual_fs, choice)
+        st.altair_chart(annual_chart, use_container_width=True)
+        with st.expander('Fundamentals'):
+                st.dataframe(
+                    Fun_statement,
+                    column_config={
+                        "Bar": st.column_config.BarChartColumn(
+                            "Trend",
+                        ),
+                    },
+                    use_container_width=True, 
+                    hide_index=False,
+                )
+        with st.expander('Key Ratios'):
+                st.dataframe(
+                    ratio_statement,
+                    column_config={
+                        "Bar": st.column_config.BarChartColumn(
+                            "Trend",
+                        ),
+                    },
+                    use_container_width=True, 
+                    hide_index=False,
+                )
 
-        st. write("Quarterly Report")
-        statement_bar(UI_full_quarter_fs, UI_essence_quarter_fs)
-        
+        st.subheader("Quarterly Report")
+        quarter_chart, Fun_statement, ratio_statement = statement_bar(UI_full_quarter_fs, UI_essence_quarter_fs, choice)
+        st.altair_chart(quarter_chart, use_container_width=True)
+        with st.expander('Fundamentals'):
+                st.dataframe(
+                    Fun_statement,
+                    column_config={
+                        "Bar": st.column_config.BarChartColumn(
+                            "Trend",
+                        ),
+                    },
+                    use_container_width=True, 
+                    hide_index=False,
+                )
+        with st.expander('Key Ratios'):
+                st.dataframe(
+                    ratio_statement,
+                    column_config={
+                        "Bar": st.column_config.BarChartColumn(
+                            "Trend",
+                        ),
+                    },
+                    use_container_width=True, 
+                    hide_index=False,
+                )
+
     with tab3:
 
         def GetRaw():
@@ -1348,15 +1392,27 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, insider_price_graph, UI_
 
 def Streamlit_Interface_FS(ticker, UI_full_annual_fs, UI_essence_annual_fs, UI_full_quarter_fs, UI_essence_quarter_fs):
 
-    cm = sns.light_palette("green", as_cmap=True)
-
     st.header("Full Financial Report -- " + ticker, divider = 'rainbow')
 
     tab0, tab1 = st.tabs(["MacroTrend", "Yahoo Finance"])
 
     with tab0:
 
-        def statement_bar(full, essence):
+        def statement_bar(full, essence, choice):
+
+            transposed_full_df = full.transpose().reset_index()
+            transposed_full_df.columns = transposed_full_df.iloc[0]
+            transposed_full_df = transposed_full_df[1:]
+
+            chart = alt.Chart(transposed_full_df).mark_bar().encode(
+                x=transposed_full_df.columns[0],
+                y=choice,
+                color=alt.condition(
+                    alt.datum[choice] > 0,
+                    alt.value("orange"),  # The positive color
+                    alt.value("brown")  # The negative color
+                )
+            )
 
             transposed_df = full.transpose()
             transposed_df.columns = transposed_df.iloc[0]
@@ -1371,15 +1427,22 @@ def Streamlit_Interface_FS(ticker, UI_full_annual_fs, UI_essence_annual_fs, UI_f
                 bar.loc[i] = [temp_list]
 
             df = pd.concat([full, bar], axis=1, ignore_index=False)
-
-            No_Deci = ['Shares Outstanding', 'Revenue', 'Gross Profit', 'Net Income/Loss',
-                     'Net Acquisitions/Divestitures',
-                     'Debt Issuance/Retirement Net - Total', 'Net Total Equity Issued/Repurchased',
-                     'Total Common And Preferred Stock Dividends Paid', 'Cash On Hand', 'Net Cash Flow',
-                     ]
+            df.set_index(df.columns[0], inplace=True)
         
+            return chart, df
+
+        transposed_essence_df = UI_full_annual_fs.transpose().reset_index()
+        transposed_essence_df.columns = transposed_essence_df.iloc[0]
+        transposed_essence_df = transposed_essence_df[1:]
+
+        choice = st.select_slider('Choose One Metric', options=transposed_essence_df.columns[1:])
+
+        st.subheader("Annual Report")
+        annual_chart, financials = statement_bar(UI_full_annual_fs, UI_essence_annual_fs, choice)
+        st.altair_chart(annual_chart, use_container_width=True)
+        with st.expander('Financials'):
             st.dataframe(
-                df,
+                financials,
                 column_config={
                     "Bar": st.column_config.BarChartColumn(
                         "Trend",
@@ -1389,11 +1452,20 @@ def Streamlit_Interface_FS(ticker, UI_full_annual_fs, UI_essence_annual_fs, UI_f
                 hide_index=False,
             )
 
-        st.write("Annual Report")
-        statement_bar(UI_full_annual_fs, UI_essence_annual_fs)
-
-        st. write("Quarterly Report")
-        statement_bar(UI_full_quarter_fs, UI_essence_quarter_fs)
+        st.subheader("Quarterly Report")
+        quarter_chart, financials = statement_bar(UI_full_quarter_fs, UI_essence_quarter_fs, choice)
+        st.altair_chart(quarter_chart, use_container_width=True)
+        with st.expander('Financials'):
+            st.dataframe(
+                financials,
+                column_config={
+                    "Bar": st.column_config.BarChartColumn(
+                        "Trend",
+                    ),
+                },
+                use_container_width=True, 
+                hide_index=False,
+            )
 
     with tab1:
 
@@ -1663,8 +1735,6 @@ def Streamlit_Interface_Portfolio(pathway):
 
         st.altair_chart(Industry_piechart + Industry_piechart_label, theme='streamlit', use_container_width=True)
 
-    st.dataframe(df)
-
     st.markdown(
         """
         <style>
@@ -1689,7 +1759,7 @@ def Streamlit_Interface_Portfolio(pathway):
 def main():
 
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ("Portfolio Analysis", "Cigar Butt Screener", "Bloomberg Terminal", "Financial Statement"))
+    page = st.sidebar.radio("Go to", ("Portfolio Overview", "Cigar Butt Screener", "Bloomberg Terminal", "Financial Statement"))
 
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -1697,7 +1767,7 @@ def main():
 
     if page == "Cigar Butt Screener":
         Streamlit_Interface_Screener(terminal_ticker_pathway)
-    elif page == "Portfolio Analysis":
+    elif page == "Portfolio Overview":
         Streamlit_Interface_Portfolio(parent_dir)
 
 

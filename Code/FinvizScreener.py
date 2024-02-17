@@ -580,14 +580,17 @@ def main():
 
     run_Finviz = True
     run_Cigar_Butt = True
-    run_MacroTrend = True
+    run_MacroTrend = False
 
     # Set Chrome options
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("start-maximized")  # Start WebDriver maximized
 
     # Create the WebDriver with the specified options
-    driver = uc.Chrome(options=chrome_options)
+    try:
+        driver = uc.Chrome(options=chrome_options)
+    except:
+        driver = webdriver.Chrome(options=chrome_options)
 
     if run_Finviz:
 
