@@ -1503,23 +1503,99 @@ def Streamlit_Interface_Portfolio(pathway):
 
     st.dataframe(df)
 
-    st.write(len(df))
+    # Initialize cash balance
+    cash_balance = 0
 
+    # Iterate through each trade in the trading log
+    for index, trade in df.iterrows():
+        # Get the trade details
+        asset_category = trade['Asset Category']
+        currency = trade['Currency']
+        symbol = trade['Symbol']
+        quantity = trade['Quantity']
+        t_price = trade['T. Price']
+        
+        # Calculate the trade amount
+        trade_amount = quantity * t_price
+        
+        # Update cash balance based on the asset category
+        if asset_category == 'Cash':
+            cash_balance += trade_amount
+        elif asset_category == 'Stocks':
+            cash_balance -= trade_amount - trade['Comm/Fee']
+        elif asset_category == 'Equity and Index Options':
+            cash_balance -= trade_amount * 100 - trade['Comm/Fee']
+
+    # Get the unique symbols in the trading log
+    symbols = df['Symbol'].unique()
+
+    # Create an empty list to store current portfolio position
     current_portfolio = []
 
-    for i in range(len(df)):
+    # Get the current price for each symbol
+    for symbol in symbols:
 
-        Asset_Category = df.iloc[i, df.columns.get_loc('Asset Category')]
-        Currency = df.iloc[i, df.columns.get_loc('Currency')]
-        Symbol = df.iloc[i, df.columns.get_loc('Symbol')]
-        Date = df.iloc[i, df.columns.get_loc('Date/Time')]
-        Quantity = df.iloc[i, df.columns.get_loc('Quantity')]
-        Price = df.iloc[i, df.columns.get_loc('T. Price')]
-        Commission = df.iloc[i, df.columns.get_loc('Comm/Fee')]
+        asset_category = df.loc[(df['Symbol'] == symbol), 'Asset Category'].iloc[0]
 
-        match Asset_Category: 
-            case 'Cash':
-                current_portfolio.append[Asset_Category, Currency, Symbol, Quantity, Price, Quantity * Price]
+        if asset_category != 'Cash': 
+
+            ticker = yf.Ticker(symbol)
+
+            current_price = ticker.history().tail(1)['Close'].values[0]
+
+            if asset_category == 'Equity and Index Options':
+                letters = ""
+                for char in symbol:
+                    if char.isdigit():
+                        break
+                    letters += char
+                ticker = yf.Ticker(letters)
+            
+            sector = ticker.info.get('sector', 'Fund')
+            industry = ticker.info.get('industry', 'Fund')
+            marketcap = ticker.info.get('marketCap', )
+            
+            quantity = df.loc[(df['Symbol'] == symbol), 'Quantity'].sum()
+
+            quantity = quantity * 100 if asset_category == 'Equity and Index Options' else quantity
+
+            current_portfolio.append({
+                'Asset Category': asset_category, 
+                'Symbol': symbol,
+                'Sector': sector, 
+                'Industry': industry,
+                'Market Cap': marketcap,
+                'Current Price': round(current_price,2),
+                'Quantity': quantity,
+                'Amount': round(current_price * quantity,2)
+            })
+        
+    current_portfolio.append({
+        'Asset Category': 'Cash', 
+        'Symbol': 'Cash',
+        'Sector': 'Cash', 
+        'Industry': 'Cash',
+        'Amount': round(cash_balance,2)
+    })
+
+    current_portfolio = pd.DataFrame(current_portfolio)
+    current_portfolio = current_portfolio[current_portfolio['Amount'] != 0]
+    current_portfolio = current_portfolio.sort_values('Amount', ascending=False)
+
+
+    # Display the current portfolio position
+    st.write("\nCurrent Portfolio Position:")
+    st.dataframe(current_portfolio, use_container_width=True, hide_index=True)
+
+    sector_piechart = alt.Chart(current_portfolio).mark_arc().encode(
+        theta="Amount",
+        color="Sector", 
+    )
+
+    sector_piechart = sector_piechart.mark_arc(outerRadius=120)
+    sector_piechart_label = sector_piechart.mark_text(radius=140, size=10).encode(text="Amount:N")
+
+    st.altair_chart(sector_piechart + sector_piechart_label, theme='streamlit', use_container_width=True)
         
 
 
