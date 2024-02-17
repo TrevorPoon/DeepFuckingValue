@@ -8,3 +8,4 @@ candlestick chart over 2 years
 portfolio tracker
 market updates
 reduce yfinance calling api , use cache but how?
+uc --> webdriver

@@ -34,6 +34,7 @@ from pandas.api.types import (
 )
 import altair as alt
 import webbrowser
+import subprocess
 
 
 
@@ -262,7 +263,10 @@ def Directly_Copy_From_MacroTrend_Python(ticker, parent_folder):
         chrome_options = webdriver.ChromeOptions()
         chrome_options.add_argument("start-maximized")
         # chrome_options.add_argument("headless")
-        driver = uc.Chrome(options=chrome_options)
+        try:
+            driver = uc.Chrome(options=chrome_options)
+        except:
+            driver = webdriver.Chrome(options=chrome_options)
 
         a = ticker.upper()
         print(a)
@@ -1564,6 +1568,12 @@ def Streamlit_Interface_Screener(pathway):
     
     st.header("Cigar Butt Screener", divider = 'rainbow')
 
+    if st.button("Refresh Screener"): 
+       
+       process = subprocess.Popen(["streamlit", "run", os.path.join(pathway, 'Code' , 'Streamlit_Bloomberg_Terminal.py')])
+
+       st.rerun()
+
 
     col1, col2 = st.columns([5,1])
 
@@ -1749,11 +1759,6 @@ def Streamlit_Interface_Portfolio(pathway):
         unsafe_allow_html=True,
     )
         
-
-
-                 
-
-
 
 
 def main():
