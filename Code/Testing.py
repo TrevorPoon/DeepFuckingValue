@@ -1,4 +1,8 @@
 import undetected_chromedriver as uc
-driver = uc.Chrome(headless=True,use_subprocess=False)
-driver.get('https://nowsecure.nl')
-driver.save_screenshot('nowsecure.png')
+import time
+
+
+
+driver = uc.Chrome(use_subprocess=False)
+driver.get('google.com')
+time.sleep(4)

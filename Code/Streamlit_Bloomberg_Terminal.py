@@ -290,8 +290,7 @@ def Directly_Copy_From_MacroTrend_Python(ticker, parent_folder):
                 geturlsp = geturl.split("/", 10)
                 geturlf = geturl.replace("revenue", "")
                 fsurl = geturlf + "income-statement?freq=" + j
-                driver.get(fsurl)
-                driver.set_window_size(2000, driver.get_window_size()["height"])
+                driver.get(fsurl)     
                 driver.execute_script("document.body.style.transform = 'scale(0.5)'")
                 wait.until(EC.presence_of_element_located((By.TAG_NAME, 'div')))
                 # check if the data in the ticker is available
@@ -309,7 +308,6 @@ def Directly_Copy_From_MacroTrend_Python(ticker, parent_folder):
                     # balance-sheet
                     bsurl = geturlf + "balance-sheet?freq=" + j
                     driver.get(bsurl)
-                    driver.set_window_size(2000, driver.get_window_size()["height"])
                     driver.execute_script("document.body.style.transform = 'scale(0.5)'")
                     bsa = driver.find_element(By.CSS_SELECTOR, "#contenttablejqxgrid").text
                     arrow = driver.find_element(By.CSS_SELECTOR, ".jqx-icon-arrow-right")
@@ -320,18 +318,16 @@ def Directly_Copy_From_MacroTrend_Python(ticker, parent_folder):
                     # cash-flow
                     bsurl = geturlf + "cash-flow-statement?freq=" + j
                     driver.get(bsurl)
-                    driver.set_window_size(2000, driver.get_window_size()["height"])
                     driver.execute_script("document.body.style.transform = 'scale(0.5)'")
                     cfa = driver.find_element(By.CSS_SELECTOR, "#contenttablejqxgrid").text
                     arrow = driver.find_element(By.CSS_SELECTOR, ".jqx-icon-arrow-right")
                     webdriver.ActionChains(driver).click_and_hold(arrow).perform()
                     time.sleep(4)
                     cfb = driver.find_element(By.CSS_SELECTOR, "#contenttablejqxgrid").text
-
                     # financial-ratio
                     bsurl = geturlf + "financial-ratios?freq=" + j
                     driver.get(bsurl)
-                    driver.set_window_size(2000, driver.get_window_size()["height"])
+                    
                     driver.execute_script("document.body.style.transform = 'scale(0.5)'")
                     fra = driver.find_element(By.CSS_SELECTOR, "#contenttablejqxgrid").text
                     arrow = driver.find_element(By.CSS_SELECTOR, ".jqx-icon-arrow-right")
@@ -1224,11 +1220,11 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, _insider_price_graph, UI
                 FCF.iloc[:,-4:].values.tolist(),
                 Debt_Issuance.iloc[:,-4:].values.tolist(),
                 Equity_Issuance.iloc[:,-4:].values.tolist(),
-                float(ticker_table['Debt/Eq'].iloc[0]),
+                float(ticker_table['Debt/Eq'].iloc[0]) if ticker_table['Debt/Eq'].iloc[0] != '-' else "/",
                 round((yf.download(ticker, period="10y")['Adj Close'].iloc[-1] / yf.download(ticker, period="10y")['Adj Close'].iloc[0]) ** (1/10) - 1, 4),
                 ticker_table['P/E'].iloc[0],
                 ticker_table['All-Time High'].iloc[0],
-                ticker_table['P/B'].iloc[0],
+                ticker_table['P/B'].iloc[0] if ticker_table['P/B'].iloc[0] != '-' else "/",
                 OpenInsider_Summary.loc[OpenInsider_Summary.iloc[:, 0] == "1M","TB"].iloc[0],
                 ticker_table['52W Low'].iloc[0],
                 ticker_table['SMA50'].iloc[0]
@@ -1238,11 +1234,11 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, _insider_price_graph, UI
                 FCF.iloc[:, -4:].values.sum() > 0,
                 Debt_Issuance.iloc[:,-4:].values.sum() < 0,
                 Equity_Issuance.iloc[:,-4:].values.sum() < 0,
-                float(ticker_table['Debt/Eq'].iloc[0]) < 1,
+                float(ticker_table['Debt/Eq'].iloc[0]) < 1 if ticker_table['Debt/Eq'].iloc[0] != '-' else False,
                 round((yf.download(ticker, period="10y")['Adj Close'].iloc[-1] / yf.download(ticker, period="10y")['Adj Close'].iloc[0]) ** (1/10) - 1, 4) > 0.08,
                 False,
                 float(ticker_table['All-Time High'].iloc[0]) < -0.6,
-                float(ticker_table['P/B'].iloc[0]) < 1,
+                float(ticker_table['P/B'].iloc[0]) < 1 if ticker_table['P/B'].iloc[0] != '-' else "/",
                 transform_kmbt(OpenInsider_Summary.loc[OpenInsider_Summary.iloc[:, 0] == "1M","TB"].iloc[0]) > 100000,
                 float(ticker_table['52W Low'].iloc[0]) < 0.15,
                 float(ticker_table['SMA50'].iloc[0]) > 0
@@ -1620,7 +1616,8 @@ def Streamlit_Interface_Screener(pathway):
         """,
         unsafe_allow_html=True,
     )
-    
+
+@st.cache_resource
 def Streamlit_Interface_Portfolio(pathway):
 
     pathway = os.path.join(pathway, "Streamlit_Data_Save", "Portfolio.csv")
