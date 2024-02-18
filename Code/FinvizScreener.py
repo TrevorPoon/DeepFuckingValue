@@ -600,7 +600,7 @@ def main():
 
     if run_Cigar_Butt:
 
-        criteria = {
+        foul_out_criteria = {
             "Sector": {"= Healthcare": False},
             "Industry": {"= Biotechnology": True},
             "Market Cap": {"< 100000000": False, "> 100000000000": False},
@@ -616,7 +616,7 @@ def main():
             "All-Time High": {"> -0.7": True}
         }
 
-        Cigar_Butt_Filter("CB_", driver, criteria)
+        Cigar_Butt_Filter("CB_", driver, foul_out_criteria)
 
     if run_MacroTrend:
 
