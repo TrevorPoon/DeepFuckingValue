@@ -1564,9 +1564,11 @@ def Streamlit_Interface_Screener(pathway):
     
     st.header("Cigar Butt Screener", divider = 'rainbow')
 
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
     if st.button("Refresh Screener"): 
        
-       process = subprocess.Popen(["streamlit", "run", os.path.join(pathway, 'Code' , 'Streamlit_Bloomberg_Terminal.py')])
+       subprocess.Popen(os.path.join(parent_dir, 'Code' , 'FinvizScreener.py'))
 
        st.rerun()
 

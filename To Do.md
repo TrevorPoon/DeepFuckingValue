@@ -10,3 +10,4 @@ Geographical PE level
 Forming a base? 
 News vs Price
 Streamlit word docs
+OpenBB References
