@@ -35,6 +35,7 @@ from pandas.api.types import (
 import altair as alt
 import webbrowser
 import subprocess
+import json
 
 
 
@@ -1503,7 +1504,7 @@ def Streamlit_Interface_FS(ticker, UI_full_annual_fs, UI_essence_annual_fs, UI_f
         unsafe_allow_html=True,
     )
 
-def Streamlit_Interface_Screener(pathway):
+def Streamlit_Interface_Screener(pathway, foul_out_criteria):
 
 
     def GetProcessed():
@@ -1566,35 +1567,11 @@ def Streamlit_Interface_Screener(pathway):
 
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    if st.button("Refresh Screener"): 
-       
-       subprocess.Popen(os.path.join(parent_dir, 'Code' , 'FinvizScreener.py'))
-
-       st.rerun()
-
-
     col1, col2 = st.columns([5,1])
 
     with col1:
 
-        options = st.selectbox(
-        'Which screener would you want?',
-        ('Filtered', 'Raw'))
-
-        if options == "Raw":
-            df = GetRaw()
-            st.data_editor(filter_dataframe(df), use_container_width=True)
-            st.write("[Go to Finviz Charts](https://finviz.com/screener.ashx?v=212&f=cap_microover,sh_instown_o10,sh_price_o1&ft=4&o=tickersfilter)")
-
-        elif options == "Filtered":
-            df = GetProcessed()
-            st.data_editor(filter_dataframe(df), use_container_width=True)
-            tickers = ','.join(df['Ticker'])
-            st.write("[Go to Finviz Charts](https://finviz.com/screener.ashx?v=212&f=cap_microover,sh_instown_o10,sh_price_o1&ft=4&t=" + tickers + "&o=tickersfilter)")
-
-    with col2:
-
-         with st.form("Ticker Input"):
+        with st.form("Ticker Input"):
 
             Ticker_Input = st.text_input('Ticker')
             
@@ -1604,6 +1581,42 @@ def Streamlit_Interface_Screener(pathway):
 
                 with open(pathway, "w") as file:
                     file.write(Ticker_Input)
+
+    with col2:
+
+        if st.button("Refresh Screener"): 
+        
+            subprocess.Popen(os.path.join(parent_dir, 'Code' , 'FinvizScreener.py'))
+
+            st.rerun()
+
+    options = st.selectbox(
+    'Which screener would you want?',
+    ('Filtered', 'Raw'))
+
+    if options == "Raw":
+        df = GetRaw()
+        st.data_editor(filter_dataframe(df), use_container_width=True)
+        st.write("[Go to Finviz Charts](https://finviz.com/screener.ashx?v=212&f=cap_microover,sh_instown_o10,sh_price_o1&ft=4&o=tickersfilter)")
+
+    elif options == "Filtered":
+        df = GetProcessed()
+        st.data_editor(filter_dataframe(df), use_container_width=True)
+        tickers = ','.join(df['Ticker'])
+    
+        true_json_values = {}
+
+        for key, value in foul_out_criteria.items():
+            for k, v in value.items():
+                if v:
+                    true_json_values[key] = {k: v}
+
+        st.write("[Go to Finviz Charts](https://finviz.com/screener.ashx?v=212&f=cap_microover,sh_instown_o10,sh_price_o1&ft=4&t=" + tickers + "&o=tickersfilter)")
+
+        st.subheader('Foul Out Criteria')
+        st.write(true_json_values)
+
+
                 
     st.markdown(
         """
@@ -1769,8 +1782,24 @@ def main():
 
     terminal_ticker_pathway = os.path.join(parent_dir, "Streamlit_Data_Save", "Terminal_Ticker.txt")
 
+    foul_out_criteria = {
+            "Sector": {"= Healthcare": False},
+            "Industry": {"= Biotechnology": True},
+            "Market Cap": {"< 100000000": False, "> 100000000000": False},
+            "P/E": {"< 0": False, "> 30": True},
+            "P/B": {"> 1": False},
+            "EPS past 5Y": {"< 0": False},
+            "Sales past 5Y": {"< 0": False},
+            "Insider Trans": {"< 0": True},
+            "ROE": {"< -0.3": False},
+            "Profit M": {"< -1": True},
+            "52W Low": {"< 0.05": False},
+            "Quick R": {"< 1": False},
+            "All-Time High": {"> -0.7": True}
+        }
+
     if page == "Cigar Butt Screener":
-        Streamlit_Interface_Screener(terminal_ticker_pathway)
+        Streamlit_Interface_Screener(terminal_ticker_pathway, foul_out_criteria)
     elif page == "Portfolio Overview":
         Streamlit_Interface_Portfolio(parent_dir)
 

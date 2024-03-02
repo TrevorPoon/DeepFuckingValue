@@ -605,7 +605,7 @@ def main():
             "Industry": {"= Biotechnology": True},
             "Market Cap": {"< 100000000": False, "> 100000000000": False},
             "P/E": {"< 0": False, "> 30": True},
-            "P/B": {"> 1": False},
+            "P/B": {"> 1": False, "< 0": True},
             "EPS past 5Y": {"< 0": False},
             "Sales past 5Y": {"< 0": False},
             "Insider Trans": {"< 0": True},
