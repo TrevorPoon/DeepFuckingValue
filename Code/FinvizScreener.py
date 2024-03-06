@@ -607,13 +607,13 @@ def main():
             "P/E": {"< 0": False, "> 30": True},
             "P/B": {"> 1": False, "< 0": True},
             "EPS past 5Y": {"< 0": False},
-            "Sales past 5Y": {"< 0": False},
+            "Sales past 5Y": {"< 0": True},
             "Insider Trans": {"< 0": True},
             "ROE": {"< -0.3": False},
             "Profit M": {"< -1": True},
             "52W Low": {"< 0.05": False},
             "Quick R": {"< 1": False},
-            "All-Time High": {"> -0.7": True}
+            "All-Time High": {"> -0.6": True}
         }
 
         Cigar_Butt_Filter("CB_", driver, foul_out_criteria)

@@ -862,17 +862,19 @@ def Streamlit_Interface_BT(ticker, OpenInsider_Summary, _insider_price_graph, UI
                 st.write("Error occurred while displaying Yahoo Finance Info:", e)
 
     with tab1:
-        st.write("10 Yrs Price Movement")
+        st.subheader("Market Cap Movement")
+        st.write("[Go to YCharts](https://ycharts.com/companies/"+ ticker +"/market_cap)")
+
+
+        st.subheader("10 Yrs Price Movement")
         st.altair_chart(Ten_Yrs_Price_Movement_graph(ticker), use_container_width=True)
 
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            st.write("OI Recent Buying (4yrs)")
-            st.dataframe(OpenInsider_Summary, use_container_width=True, hide_index=True)
+        st.subheader("OI Recent Buying (4yrs)")
+        st.dataframe(OpenInsider_Summary, hide_index=True)
 
-        with col2:
-            st.write("OI Price/Actions")
-            st.altair_chart(_insider_price_graph, use_container_width=True)
+        st.subheader("OI Price/Actions")
+        st.altair_chart(_insider_price_graph, use_container_width=True)
+        st.write("[Go to OpenInsider](http://openinsider.com/"+ ticker + ")")
 
     with tab2:
 
@@ -1397,47 +1399,49 @@ def Streamlit_Interface_FS(ticker, UI_full_annual_fs, UI_essence_annual_fs, UI_f
 
     tab0, tab1 = st.tabs(["MacroTrend", "Yahoo Finance"])
 
-    with tab0:
+    def statement_bar(full, essence, choice):
 
-        def statement_bar(full, essence, choice):
+        transposed_full_df = full.transpose().reset_index()
+        transposed_full_df.columns = transposed_full_df.iloc[0]
+        transposed_full_df = transposed_full_df[1:]
 
-            transposed_full_df = full.transpose().reset_index()
-            transposed_full_df.columns = transposed_full_df.iloc[0]
-            transposed_full_df = transposed_full_df[1:]
-
-            chart = alt.Chart(transposed_full_df).mark_bar().encode(
-                x=transposed_full_df.columns[0],
-                y=choice,
-                color=alt.condition(
-                    alt.datum[choice] > 0,
-                    alt.value("orange"),  # The positive color
-                    alt.value("brown")  # The negative color
-                )
+        chart = alt.Chart(transposed_full_df).mark_bar().encode(
+            x=transposed_full_df.columns[0],
+            y=choice,
+            color=alt.condition(
+                alt.datum[choice] > 0,
+                alt.value("orange"),  # The positive color
+                alt.value("brown")  # The negative color
             )
+        )
 
-            transposed_df = full.transpose()
-            transposed_df.columns = transposed_df.iloc[0]
-            transposed_df = transposed_df[1:]
+        transposed_df = full.transpose()
+        transposed_df.columns = transposed_df.iloc[0]
+        transposed_df = transposed_df[1:]
 
-            bar = pd.DataFrame(columns=["Bar"])
+        bar = pd.DataFrame(columns=["Bar"])
 
-            for i in range(len(transposed_df.columns)):
-                temp_list = []
-                for j in range(len(transposed_df)):
-                    temp_list.append(transposed_df.iloc[j, i])
-                bar.loc[i] = [temp_list]
+        for i in range(len(transposed_df.columns)):
+            temp_list = []
+            for j in range(len(transposed_df)):
+                temp_list.append(transposed_df.iloc[j, i])
+            bar.loc[i] = [temp_list]
 
-            df = pd.concat([full, bar], axis=1, ignore_index=False)
-            df.set_index(df.columns[0], inplace=True)
+        df = pd.concat([full, bar], axis=1, ignore_index=False)
+        df.set_index(df.columns[0], inplace=True)
+
+        return chart, df
+
+
+    with tab0:
         
-            return chart, df
-
         transposed_essence_df = UI_full_annual_fs.transpose().reset_index()
         transposed_essence_df.columns = transposed_essence_df.iloc[0]
         transposed_essence_df = transposed_essence_df[1:]
 
-        choice = st.select_slider('Choose One Metric', options=transposed_essence_df.columns[1:])
+        st.dataframe(transposed_essence_df)
 
+        choice = st.select_slider('Choose One Metric', options=transposed_essence_df.columns[1:])
         st.subheader("Annual Report")
         annual_chart, financials = statement_bar(UI_full_annual_fs, UI_essence_annual_fs, choice)
         st.altair_chart(annual_chart, use_container_width=True)
@@ -1474,21 +1478,60 @@ def Streamlit_Interface_FS(ticker, UI_full_annual_fs, UI_essence_annual_fs, UI_f
 
         col1, col2 = st.columns([1,1])
 
-        with col1:
-            st.subheader("Income Statement")
-            st.dataframe(yf_ticker.income_stmt)
-            st.subheader("Balance Sheet")
-            st.dataframe(yf_ticker.balance_sheet)
-            st.subheader("Cashflow statement")
-            st.dataframe(yf_ticker.cashflow)
+        def transform_dataframe(df):
+
+            transformed_df = df.transpose().reset_index()
+            transformed_df['index'] = pd.to_datetime(transformed_df['index']).dt.strftime('%Y-%m-%d')
+            return transformed_df
         
-        with col2:
-            st.subheader(".")
-            st.dataframe(yf_ticker.quarterly_income_stmt)
-            st.subheader(".")
-            st.dataframe(yf_ticker.quarterly_balance_sheet)
-            st.subheader(".")
-            st.dataframe(yf_ticker.quarterly_cashflow)
+        def altair_yf(full, choice):
+
+            chart = alt.Chart(full).mark_bar().encode(
+                x=full.columns[0],
+                y=choice,
+                color=alt.condition(
+                    alt.datum[choice] > 0,
+                    alt.value("orange"),  # The positive color
+                    alt.value("brown")  # The negative color
+                )
+            )
+
+            st.altair_chart(chart, use_container_width=True)
+
+        st.subheader("Income Statement")
+        annual_income_statement = yf_ticker.income_stmt
+        quarterly_income_statement = yf_ticker.quarterly_income_stmt
+        ais = transform_dataframe(annual_income_statement)
+        qis = transform_dataframe(quarterly_income_statement)
+        choice_income_statement = st.select_slider('Choose One Metric', options=ais.columns[1:])
+        altair_yf(ais, choice_income_statement)
+        altair_yf(qis, choice_income_statement)
+        st.dataframe(annual_income_statement)
+        st.dataframe(quarterly_income_statement)
+
+        st.subheader("Balance Sheet")
+        annual_balance_sheet = yf_ticker.balance_sheet
+        quarterly_balance_sheet = yf_ticker.quarterly_balance_sheet
+        abs = transform_dataframe(annual_balance_sheet)
+        qbs = transform_dataframe(quarterly_balance_sheet)
+        choice_balance_sheet = st.select_slider('Choose One Metric', options=abs.columns[1:])
+        altair_yf(abs, choice_balance_sheet)
+        altair_yf(qbs, choice_balance_sheet)
+        st.dataframe(annual_balance_sheet)
+        st.dataframe(quarterly_balance_sheet)
+
+
+        st.subheader("Cashflow statement")
+        annual_cashflow_statement = yf_ticker.cashflow
+        quarterly_cashflow_statement = yf_ticker.quarterly_cashflow
+        acfs = transform_dataframe(annual_cashflow_statement)
+        qcfs = transform_dataframe(quarterly_cashflow_statement)
+        choice_cashflow_statement = st.select_slider('Choose One Metric', options=acfs.columns[1:])
+        altair_yf(acfs, choice_cashflow_statement)
+        altair_yf(qcfs, choice_cashflow_statement)
+        st.dataframe(annual_cashflow_statement)
+        st.dataframe(quarterly_cashflow_statement)
+
 
     st.markdown(
         """
