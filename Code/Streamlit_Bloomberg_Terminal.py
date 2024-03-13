@@ -1432,14 +1432,11 @@ def Streamlit_Interface_FS(ticker, UI_full_annual_fs, UI_essence_annual_fs, UI_f
 
         return chart, df
 
-
     with tab0:
         
         transposed_essence_df = UI_full_annual_fs.transpose().reset_index()
         transposed_essence_df.columns = transposed_essence_df.iloc[0]
         transposed_essence_df = transposed_essence_df[1:]
-
-        st.dataframe(transposed_essence_df)
 
         choice = st.select_slider('Choose One Metric', options=transposed_essence_df.columns[1:])
         st.subheader("Annual Report")
