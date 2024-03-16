@@ -160,27 +160,32 @@ def YahooFinance(ticker):
 
     try:
 
+        net_income_5_years = []
+        ncav_per_share = False
+
         # Create a Yahoo Finance ticker object
         ticker = yf.Ticker(ticker)
 
-        # Get the financial data for the ticker
         financials = ticker.financials
-
-        # Get the net income for the last 5 years
         net_income = financials.loc["Net Income"]
-
-        # Filter out the NaN (Not a Number) values
         net_income = net_income.dropna()
-
-        # Get the net income for the last 5 years as a list
         net_income_5_years = net_income.tail(5).tolist()
 
+        balance_sheet = ticker.quarterly_balance_sheet
+        info = ticker.info
+        shares_outstanding = info['sharesOutstanding']
+        current_assets = balance_sheet.loc['Current Assets', balance_sheet.columns[0]]
+        total_liabilities = balance_sheet.loc['Total Liabilities Net Minority Interest', balance_sheet.columns[0]]
+        ncav_per_share = (current_assets - total_liabilities) / shares_outstanding
+        ncav_per_share = round(ncav_per_share, 3)
+
         # Check if any of the net income values is positive
-        return any(income > 0 for income in net_income_5_years)
+        return any(income > 0 for income in net_income_5_years), ncav_per_share
 
     except Exception as e:
         print(e)
-        return False
+        return any(income > 0 for income in net_income_5_years), ncav_per_share
+
 
 def Cigar_Butt_Filter (name, driver, criteria):
 
@@ -222,20 +227,23 @@ def Cigar_Butt_Filter (name, driver, criteria):
             sum_values_list = []
             greater_than_100000_list = []
             Profit_4_yrs_list = []
+            ncav_list = []
 
             for ticker in df['Ticker']:
 
                 sum_values = OpenInsider(ticker, driver)
-                any_profit = YahooFinance(ticker)
+                any_profit, ncav_per_share = YahooFinance(ticker)
 
                 # Append the calculated values to the lists
                 sum_values_list.append(sum_values)
                 greater_than_100000_list.append(sum_values > 100000)
                 Profit_4_yrs_list.append(any_profit)
+                ncav_list.append(ncav_per_share)
 
             df['Insider 6M Sum'] = sum_values_list
             df['Insider 6M Sum > 100K'] = greater_than_100000_list
             df['Any profit over 5 years'] = Profit_4_yrs_list
+            df['NCAV'] = ncav_list
 
             # Create a new column 'Fundamental Score' initialized with 0
             df['Fundamental Score'] = 0
