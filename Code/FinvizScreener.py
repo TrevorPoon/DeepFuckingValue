@@ -161,7 +161,7 @@ def YahooFinance(ticker):
     try:
 
         net_income_5_years = []
-        ncav_per_share = False
+        ncav_per_share = ""
 
         # Create a Yahoo Finance ticker object
         ticker = yf.Ticker(ticker)
