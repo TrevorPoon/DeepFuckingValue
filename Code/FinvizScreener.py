@@ -603,7 +603,7 @@ def main():
     if run_Finviz:
 
         name = "Screener_Cigar_Butt_Investing_"
-        link = "https://finviz.com/screener.ashx?v=152&f=cap_microover,sh_instown_o10,sh_price_o1&ft=4&o=ticker&c=0,1,79,3,4,5,6,7,8,9,10,11,12,13,74,14,15,77,17,18,19,20,21,23,22,26,27,28,29,30,33,34,35,36,37,38,39,41,42,43,44,46,48,53,57,58,125,126,68,65"
+        link = "https://finviz.com/screener.ashx?v=152&f=sh_price_o1,sh_outstanding_o1&ft=4&o=ticker&c=0,1,79,3,4,5,6,7,8,9,10,11,12,13,74,14,15,77,17,18,19,20,21,23,22,26,27,28,29,30,33,34,35,36,37,38,39,41,42,43,44,46,48,53,57,58,125,126,68,65"
         Get_Result_From_Finviz(driver, name, link)
 
     if run_Cigar_Butt:
